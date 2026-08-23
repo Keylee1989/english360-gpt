@@ -74,6 +74,10 @@ export default defineConfig({
     }),
   ],
   base: "/english360-gpt/",
+  build: {
+    modulePreload: false,
+    cssCodeSplit: false,
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
