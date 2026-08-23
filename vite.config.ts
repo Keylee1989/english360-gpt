@@ -18,8 +18,8 @@ export default defineConfig({
         background_color: "#ffffff",
         display: "standalone",
         orientation: "portrait",
-        scope: "/",
-        start_url: "/",
+        scope: "/english360-gpt/",
+        start_url: "/english360-gpt/",
         icons: [
           {
             src: "icons/icon-192.png",
@@ -73,7 +73,7 @@ export default defineConfig({
       },
     }),
   ],
-  base: "/",
+  base: "/english360-gpt/",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
