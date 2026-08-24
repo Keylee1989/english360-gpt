@@ -22,6 +22,9 @@ import { A2_WORDS } from "./words-a2";
 import { A2_EXTRA_WORDS } from "./words-a2-extra";
 import { B1_WORDS } from "./words-b1";
 import { B2_WORDS_GENERATED, C1_WORDS_GENERATED } from "./words-b2-c2-generator";
+import { BULK_WORDS } from "./words-bulk";
+import { B2_EXPANSION } from "./words-expand-b2";
+import { C1_EXPANSION } from "./words-expand-c1";
 import { generateWordBatch } from "./vocab-generator";
 import type { VocabularyItem } from "../index";
 
@@ -44,6 +47,9 @@ const B2_VOCAB: VocabularyItem[] = generateWordBatch(B2_WORDS_GENERATED, 6000, "
 
 // C1: CompactWord[] → VocabularyItem[]
 const C1_VOCAB: VocabularyItem[] = generateWordBatch(C1_WORDS_GENERATED, 6500, "c1-advanced", "C1");
+
+// Bulk Expansion: Additional words across all levels
+const BULK_VOCAB: VocabularyItem[] = generateWordBatch(BULK_WORDS, 7000, "bulk-expansion", undefined);
 
 // ============================================================
 // C2 Expansion: Common academic/professional words
@@ -126,6 +132,10 @@ export const ALL_VOCABULARY: VocabularyItem[] = [
   ...B2_VOCAB,
   ...C1_VOCAB,
   ...C2_EXPANSION,
+  ...BULK_VOCAB,
+  // New expansions for 22K target
+  ...generateWordBatch(B2_EXPANSION, 8000, "b2-workplace", "B2"),
+  ...generateWordBatch(C1_EXPANSION, 11000, "c1-academic", "C1"),
 ];
 
 // Deduplicate by word

@@ -264,11 +264,11 @@ export default function ReviewPage() {
           {/* Show which words were wrong */}
           {reviewState.incorrectCount > 0 && (
             <div className="card mb-6 text-left">
-              <h3 className="text-lg font-semibold mb-3">需要再复习的单词</h3>
+              <h3 className="text-lg font-semibold mb-3">❌ 需要再复习的单词</h3>
               <div className="space-y-2">
-                {reviewItems.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 p-2 rounded bg-gray-50">
-                    <span className="font-medium">{item.word}</span>
+                {reviewItems.slice(0, reviewState.correctCount + reviewState.incorrectCount).map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 p-2 rounded bg-red-50">
+                    <span className="font-medium text-red-700">{item.word}</span>
                     <span className="text-gray-400">→</span>
                     <span className="text-primary-600">{item.chineseMeaning}</span>
                   </div>
@@ -278,11 +278,19 @@ export default function ReviewPage() {
           )}
 
           <div className="space-y-3">
+            {reviewState.incorrectCount > 0 && (
+              <button
+                onClick={handleRestart}
+                className="w-full rounded-lg bg-primary-500 px-4 py-3 font-medium text-white"
+              >
+                复习错题 ({reviewState.incorrectCount}个)
+              </button>
+            )}
             <button
-              onClick={handleRestart}
-              className="w-full rounded-lg bg-primary-500 px-4 py-3 font-medium text-white"
+              onClick={() => window.history.back()}
+              className="w-full rounded-lg border-2 border-primary-500 px-4 py-3 font-medium text-primary-600"
             >
-              再次复习
+              ✅ 完成，返回学习
             </button>
           </div>
         </div>
