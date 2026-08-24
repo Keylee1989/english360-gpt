@@ -18,6 +18,7 @@
 
 import type { SkillDomain } from "@/types";
 import type { VocabularyItem } from "../vocabulary";
+import { UNIQUE_BEGINNER_WORDS } from "../vocabulary/data/beginner-words";
 
 // ============================================================
 // Activity Types
@@ -489,12 +490,13 @@ export class ActivityGenerator {
   private generateMultipleChoiceOptions(item: VocabularyItem): { english: string; chinese: string }[] {
     const correct = { english: item.chineseMeaning, chinese: item.chineseMeaning };
 
-    // Generate 3 wrong options (simplified - in production, use word relationships)
-    const wrongOptions = [
-      { english: "错误选项1", chinese: "错误1" },
-      { english: "错误选项2", chinese: "错误2" },
-      { english: "错误选项3", chinese: "错误3" },
-    ];
+    // Pick 3 random distractors from the beginner word bank (excluding the correct word)
+    const pool = UNIQUE_BEGINNER_WORDS.filter(w => w.id !== item.id);
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    const wrongOptions = shuffled.slice(0, 3).map(w => ({
+      english: w.chineseMeaning,
+      chinese: w.chineseMeaning,
+    }));
 
     // Shuffle and insert correct answer
     const options = [...wrongOptions, correct];

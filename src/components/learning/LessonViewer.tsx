@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AudioEngine } from "@/engines/audio";
 import { ListeningEngine } from "@/engines/listening";
 import { SpeakingEngine } from "@/engines/speaking";
@@ -79,13 +79,17 @@ const getActivityTitle = (type: LessonActivity["type"]): string => {
 export default function LessonViewer() {
   const navigate = useNavigate();
   const { lessonId } = useParams();
+  const [searchParams] = useSearchParams();
   
   // Determine which day to load (default to day 1)
   const dayNumber = lessonId ? parseInt(lessonId.replace("day_", ""), 10) : 1;
   const lesson = getLessonByDay(dayNumber) || getLessonByDay(1);
 
+  // Read activity index from query param (?activity=N)
+  const initialActivity = parseInt(searchParams.get("activity") || "0", 10);
+
   const [progress, setProgress] = useState<LessonProgress>({
-    currentActivity: 0,
+    currentActivity: Math.min(initialActivity, (lesson?.activities.length || 1) - 1),
     totalActivities: lesson?.activities.length || 0,
     timeSpent: 0,
     startTime: Date.now(),

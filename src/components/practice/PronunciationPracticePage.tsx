@@ -5,8 +5,6 @@
  */
 
 import { PronunciationPractice } from "./PronunciationPractice";
-import type { PronunciationAnalysisV4 } from "@/engines/pronunciation/v4";
-
 // Default word for demonstration
 const defaultWord = {
   targetWord: "hello",
@@ -15,8 +13,8 @@ const defaultWord = {
 };
 
 export default function PronunciationPracticePage() {
-  const handleComplete = (analysis: PronunciationAnalysisV4) => {
-    console.log("Pronunciation analysis:", analysis);
+  const handleComplete = (score: number) => {
+    console.log("Pronunciation score:", score);
     // In production, this would save to IndexedDB
   };
 

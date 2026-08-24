@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 // ============================================================
 // Types
@@ -36,6 +37,7 @@ interface LearningSession {
 // ============================================================
 
 export default function DailyPlanPage() {
+  const navigate = useNavigate();
   const [plan, setPlan] = useState<DailyPlan | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -224,7 +226,24 @@ export default function DailyPlanPage() {
                 {session.completed ? (
                   <span className="text-2xl">✅</span>
                 ) : (
-                  <button className="rounded-lg bg-primary-500 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-primary-600">
+                  <button
+                    onClick={() => {
+                      // Map domain to activity index in lesson viewer
+                      const activityMap: Record<string, number> = {
+                        phonics: 0,
+                        vocabulary: 1,
+                        listening: 3,
+                        speaking: 5,
+                        reading: 6,
+                        writing: 7,
+                        review: 8,
+                        assessment: 9,
+                      };
+                      const idx = activityMap[session.domain] ?? 0;
+                      navigate(`/lesson/day_1?activity=${idx}`);
+                    }}
+                    className="rounded-lg bg-primary-500 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-primary-600"
+                  >
                     开始
                   </button>
                 )}
@@ -237,7 +256,10 @@ export default function DailyPlanPage() {
       {/* Quick Start */}
       {!plan.sessions.every((s) => s.completed) && (
         <div className="mt-6">
-          <button className="w-full rounded-lg bg-primary-500 px-4 py-3 font-medium text-white transition-colors hover:bg-primary-600">
+          <button
+            onClick={() => navigate("/lesson/day_1")}
+            className="w-full rounded-lg bg-primary-500 px-4 py-3 font-medium text-white transition-colors hover:bg-primary-600"
+          >
             开始今日学习
           </button>
         </div>

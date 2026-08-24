@@ -3,9 +3,23 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
+// Plugin to strip crossorigin attributes from HTML (fixes GitHub Pages loading issues)
+function stripCrossorigin() {
+  return {
+    name: "strip-crossorigin",
+    enforce: "post" as const,
+    transformIndexHtml(html: string) {
+      return html
+        .replace(/ crossorigin(="[^"]*")?/g, "")
+        .replace(/<link rel="manifest" href="[^"]*manifest\.webmanifest" \/?>\s*/g, "");
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
+    stripCrossorigin(),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "icons/*.png"],

@@ -214,12 +214,7 @@ export class ListeningEngine {
             chineseQuestion: `这句话是什么意思？`,
             type: "multiple_choice",
             correctAnswer: sentence.chinese,
-            options: [
-              sentence.chinese,
-              "错误选项1",
-              "错误选项2",
-              "错误选项3",
-            ],
+            options: this.generateListeningOptions(sentence.chinese, sentences),
           },
         ],
         keywords: sentence.english.split(" ").slice(0, 3),
@@ -244,6 +239,44 @@ export class ListeningEngine {
     }
 
     // Shuffle options
+    return options.sort(() => Math.random() - 0.5);
+  }
+
+  /**
+   * Generate Chinese meaning distractors for listening comprehension
+   */
+  private generateListeningOptions(
+    correctChinese: string,
+    sentences: { english: string; chinese: string }[]
+  ): string[] {
+    // Pool of common Chinese distractors from daily life
+    const fallbackDistractors = [
+      "我很高兴", "今天天气很好", "谢谢你", "我不知道", "早上好",
+      "再见", "请帮帮我", "我想吃饭", "这个多少钱", "对不起",
+    ];
+
+    // First try to get distractors from other sentences in the same set
+    const otherChinese = sentences
+      .map((s) => s.chinese)
+      .filter((c) => c !== correctChinese);
+
+    const distractors: string[] = [];
+    const pool = [...otherChinese, ...fallbackDistractors].filter(
+      (c) => c !== correctChinese
+    );
+
+    // Shuffle and pick 3
+    const shuffled = [...new Set(pool)].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < 3 && i < shuffled.length; i++) {
+      distractors.push(shuffled[i]);
+    }
+
+    // Pad if needed
+    while (distractors.length < 3) {
+      distractors.push(fallbackDistractors[distractors.length % fallbackDistractors.length]);
+    }
+
+    const options = [correctChinese, ...distractors.slice(0, 3)];
     return options.sort(() => Math.random() - 0.5);
   }
 
