@@ -2,7 +2,7 @@
  * Daily Plan Page
  *
  * Shows:
- * - Today's learning sessions
+ * - Today's learning sessions from real curriculum data
  * - Progress through sessions
  * - Time estimates
  * - Priority items
@@ -10,6 +10,8 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getLessonByDay } from "@/engines/curriculum/data/stage1-lessons";
+import type { LessonActivity } from "@/types/database";
 
 // ============================================================
 // Types
@@ -17,19 +19,33 @@ import { useNavigate } from "react-router-dom";
 
 interface DailyPlan {
   date: string;
+  dayNumber: number;
   totalMinutes: number;
-  sessions: LearningSession[];
-  priorities: string[];
+  activities: LessonActivity[];
 }
 
-interface LearningSession {
-  id: string;
-  domain: string;
-  activityType: string;
-  minutes: number;
-  description: string;
-  priority: "critical" | "high" | "medium" | "low";
-  completed: boolean;
+// ============================================================
+// Helper: map activity type to route
+// ============================================================
+
+function getActivityRoute(activity: LessonActivity, dayNumber: number, index: number): string {
+  switch (activity.type) {
+    case "phonics":
+    case "vocabulary_introduction":
+    case "vocabulary_recognition":
+    case "vocabulary_recall":
+    case "grammar_explanation":
+    case "grammar_practice":
+    case "listening_comprehension":
+    case "listening_dictation":
+    case "speaking_repetition":
+    case "speaking_conversation":
+    case "review":
+    case "assessment":
+      return `/lesson/day_${dayNumber}?activity=${index}`;
+    default:
+      return `/lesson/day_${dayNumber}?activity=${index}`;
+  }
 }
 
 // ============================================================
@@ -45,78 +61,54 @@ export default function DailyPlanPage() {
     loadPlan();
   }, []);
 
-  const loadPlan = async () => {
-    // TODO: Load real plan from DailyPlannerEngine
-    // For now, show placeholder data
-    setPlan({
-      date: new Date().toISOString().split("T")[0],
-      totalMinutes: 30,
-      sessions: [
-        {
-          id: "1",
-          domain: "vocabulary",
-          activityType: "multiple_choice",
-          minutes: 10,
-          description: "学习5个新单词",
-          priority: "critical",
-          completed: false,
-        },
-        {
-          id: "2",
-          domain: "phonics",
-          activityType: "multiple_choice",
-          minutes: 10,
-          description: "学习字母A-D的发音",
-          priority: "high",
-          completed: false,
-        },
-        {
-          id: "3",
-          domain: "listening",
-          activityType: "listening",
-          minutes: 10,
-          description: "听力练习",
-          priority: "medium",
-          completed: false,
-        },
-      ],
-      priorities: ["学习新单词", "练习发音"],
-    });
+  const loadPlan = () => {
+    // Load real curriculum data for Day 1
+    const lesson = getLessonByDay(1);
+    if (lesson && lesson.activities.length > 0) {
+      setPlan({
+        date: new Date().toLocaleDateString("zh-CN"),
+        dayNumber: 1,
+        totalMinutes: lesson.totalDuration || 240,
+        activities: lesson.activities,
+      });
+    } else {
+      // Fallback if no lesson found
+      setPlan({
+        date: new Date().toLocaleDateString("zh-CN"),
+        dayNumber: 1,
+        totalMinutes: 30,
+        activities: [],
+      });
+    }
     setLoading(false);
   };
 
-  const getPriorityColor = (priority: LearningSession["priority"]) => {
-    switch (priority) {
-      case "critical":
-        return "bg-red-100 text-red-800";
-      case "high":
-        return "bg-orange-100 text-orange-800";
-      case "medium":
-        return "bg-blue-100 text-blue-800";
-      case "low":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  const getActivityIcon = (type: LessonActivity["type"]): string => {
+    const icons: Record<LessonActivity["type"], string> = {
+      phonics: "🔤",
+      vocabulary_introduction: "📚",
+      vocabulary_recognition: "✅",
+      vocabulary_recall: "🧠",
+      grammar_explanation: "📝",
+      grammar_practice: "✏️",
+      listening_comprehension: "👂",
+      listening_dictation: "✍️",
+      speaking_repetition: "🗣️",
+      speaking_conversation: "💬",
+      reading_comprehension: "📖",
+      writing_practice: "✍️",
+      review: "🔄",
+      assessment: "📊",
+    };
+    return icons[type] || "📝";
   };
 
-  const getDomainIcon = (domain: string) => {
-    switch (domain) {
-      case "vocabulary":
-        return "📚";
-      case "phonics":
-        return "🔤";
-      case "listening":
-        return "👂";
-      case "speaking":
-        return "🗣️";
-      case "reading":
-        return "📖";
-      case "writing":
-        return "✏️";
-      default:
-        return "📝";
-    }
+  const getActivityTitle = (activity: LessonActivity): string => {
+    return activity.titleChinese || activity.title;
+  };
+
+  const getActivityDescription = (activity: LessonActivity): string => {
+    return activity.descriptionChinese || activity.description;
   };
 
   if (loading) {
@@ -129,141 +121,86 @@ export default function DailyPlanPage() {
     );
   }
 
-  if (!plan) {
+  if (!plan || plan.activities.length === 0) {
     return (
       <div className="page-container">
         <div className="text-center py-12">
           <p className="text-gray-500">暂无学习计划</p>
+          <button
+            onClick={() => navigate("/onboarding")}
+            className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg"
+          >
+            开始入门引导
+          </button>
         </div>
       </div>
     );
   }
 
-  const completedCount = plan.sessions.filter((s) => s.completed).length;
-  const totalCount = plan.sessions.length;
-
   return (
     <div className="page-container">
       <header className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-primary-800">今日学习</h1>
-        <p className="mt-1 text-sm text-gray-500">{plan.date}</p>
+        <p className="mt-1 text-sm text-gray-500">
+          Day {plan.dayNumber} · {plan.date}
+        </p>
+        <p className="mt-1 text-xs text-gray-400">
+          预计 {plan.totalMinutes} 分钟 · {plan.activities.length} 个活动
+        </p>
       </header>
 
-      {/* Progress Summary */}
-      <div className="card mb-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">学习进度</h2>
-            <p className="text-sm text-gray-500">
-              {completedCount} / {totalCount} 个任务完成
-            </p>
-          </div>
-          <div className="text-2xl font-bold text-primary-600">
-            {Math.round((completedCount / totalCount) * 100)}%
-          </div>
-        </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-gray-200">
-          <div
-            className="h-full bg-primary-500 transition-all"
-            style={{
-              width: `${(completedCount / totalCount) * 100}%`,
-            }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-gray-500">
-          预计总时间：{plan.totalMinutes} 分钟
-        </p>
-      </div>
-
-      {/* Priorities */}
-      {plan.priorities.length > 0 && (
-        <div className="card mb-4">
-          <h2 className="mb-2 text-lg font-semibold">今日重点</h2>
-          <div className="flex flex-wrap gap-2">
-            {plan.priorities.map((priority, index) => (
-              <span
-                key={index}
-                className="rounded-full bg-primary-100 px-3 py-1 text-xs font-medium text-primary-800"
-              >
-                {priority}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Sessions List */}
+      {/* Activity List */}
       <div className="space-y-3">
-        {plan.sessions.map((session) => (
-          <div
-            key={session.id}
-            className={`card ${session.completed ? "opacity-60" : ""}`}
-          >
-            <div className="flex items-start gap-3">
-              <div className="text-2xl">{getDomainIcon(session.domain)}</div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-medium">{session.description}</h3>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${getPriorityColor(
-                      session.priority
-                    )}`}
-                  >
-                    {session.priority === "critical"
-                      ? "必须"
-                      : session.priority === "high"
-                      ? "重要"
-                      : session.priority === "medium"
-                      ? "推荐"
-                      : "可选"}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500">
-                  {session.minutes} 分钟 · {session.activityType}
+        {plan.activities.map((activity, index) => {
+          const route = getActivityRoute(activity, plan.dayNumber, index);
+          return (
+            <div
+              key={activity.id}
+              className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm border border-gray-100"
+            >
+              {/* Icon */}
+              <div className="flex-shrink-0 text-2xl">
+                {getActivityIcon(activity.type)}
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-gray-800 text-sm">
+                  {getActivityTitle(activity)}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5 truncate">
+                  {getActivityDescription(activity)}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {activity.duration} 分钟
                 </p>
               </div>
-              <div>
-                {session.completed ? (
-                  <span className="text-2xl">✅</span>
-                ) : (
-                  <button
-                    onClick={() => {
-                      // Map domain to activity index in lesson viewer
-                      const activityMap: Record<string, number> = {
-                        phonics: 0,
-                        vocabulary: 1,
-                        listening: 3,
-                        speaking: 5,
-                        reading: 6,
-                        writing: 7,
-                        review: 8,
-                        assessment: 9,
-                      };
-                      const idx = activityMap[session.domain] ?? 0;
-                      navigate(`/lesson/day_1?activity=${idx}`);
-                    }}
-                    className="rounded-lg bg-primary-500 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-primary-600"
-                  >
-                    开始
-                  </button>
-                )}
-              </div>
+
+              {/* Action Button */}
+              <button
+                onClick={() => navigate(route)}
+                className="flex-shrink-0 rounded-lg bg-primary-500 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-primary-600 active:bg-primary-700"
+              >
+                开始
+              </button>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Quick Start */}
-      {!plan.sessions.every((s) => s.completed) && (
-        <div className="mt-6">
-          <button
-            onClick={() => navigate("/lesson/day_1")}
-            className="w-full rounded-lg bg-primary-500 px-4 py-3 font-medium text-white transition-colors hover:bg-primary-600"
-          >
-            开始今日学习
-          </button>
-        </div>
-      )}
+      {/* Quick Start - First incomplete activity */}
+      <div className="mt-6">
+        <button
+          onClick={() => {
+            const firstIncomplete = plan.activities.findIndex((a) => !a.completed);
+            const idx = firstIncomplete >= 0 ? firstIncomplete : 0;
+            navigate(`/lesson/day_${plan.dayNumber}?activity=${idx}`);
+          }}
+          className="w-full rounded-xl bg-primary-500 px-4 py-3 font-medium text-white transition-colors hover:bg-primary-600 active:bg-primary-700 shadow-md"
+        >
+          开始今日学习
+        </button>
+      </div>
     </div>
   );
 }

@@ -834,6 +834,27 @@ export const DAY_1_LESSON: DailyLesson = {
   activities: [
     {
       id: "act_1",
+      type: "phonics" as const,
+      title: "Letter Sounds",
+      titleChinese: "字母发音",
+      description: "Learn the sounds of letters A-D",
+      descriptionChinese: "学习字母 A-D 的发音",
+      duration: 15,
+      objective: { english: "Recognize and produce letter sounds A-D", chinese: "认识并发出字母 A-D 的发音" },
+      content: {
+        phonics: [
+          { letter: "A", sound: "/eɪ/", soundDescription: "字母A的名称音", examples: [{ word: "apple", chinese: "苹果" }, { word: "ant", chinese: "蚂蚁" }] },
+          { letter: "B", sound: "/biː/", soundDescription: "字母B的名称音", examples: [{ word: "book", chinese: "书" }, { word: "bag", chinese: "包" }] },
+          { letter: "C", sound: "/siː/", soundDescription: "字母C的名称音", examples: [{ word: "cat", chinese: "猫" }, { word: "car", chinese: "汽车" }] },
+          { letter: "D", sound: "/diː/", soundDescription: "字母D的名称音", examples: [{ word: "dog", chinese: "狗" }, { word: "door", chinese: "门" }] },
+        ],
+      },
+      userAction: { type: "listen", instruction: "Listen and repeat each letter sound", instructionChinese: "听并跟读每个字母的发音" },
+      evaluation: { type: "self_check" },
+      completed: false,
+    },
+    {
+      id: "act_2",
       type: "vocabulary_introduction" as const,
       title: "Greetings",
       titleChinese: "问候语",
@@ -856,7 +877,7 @@ export const DAY_1_LESSON: DailyLesson = {
       completed: false,
     },
     {
-      id: "act_2",
+      id: "act_3",
       type: "review" as const,
       title: "Review",
       titleChinese: "复习",
