@@ -580,6 +580,8 @@ const COMMON_ERRORS: GrammarRule[] = [
 // Export All Grammar Rules
 // ============================================================
 
+import { ADVANCED_GRAMMAR_RULES } from "./grammar-advanced";
+
 export const ALL_GRAMMAR_RULES: GrammarRule[] = [
   ...PARTS_OF_SPEECH,
   ...TENSES,
@@ -590,6 +592,7 @@ export const ALL_GRAMMAR_RULES: GrammarRule[] = [
   ...MODALS,
   ...RELATIVE,
   ...COMMON_ERRORS,
+  ...ADVANCED_GRAMMAR_RULES,
 ];
 
 export const GRAMMAR_STATS = {

@@ -11,6 +11,7 @@ import ShadowingPracticePage from "./components/practice/ShadowingPracticePage";
 import ConversationPracticePage from "./components/practice/ConversationPracticePage";
 import PronunciationPracticePage from "./components/practice/PronunciationPracticePage";
 import ReferencePage from "./components/reference/ReferencePage";
+import MediaLibraryPage from "./components/resources/MediaLibraryPage";
 import NotFoundPage from "./components/common/NotFoundPage";
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
         <Route path="practice/conversation" element={<ConversationPracticePage />} />
         <Route path="practice/pronunciation" element={<PronunciationPracticePage />} />
         <Route path="reference" element={<ReferencePage />} />
+        <Route path="resources" element={<MediaLibraryPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

@@ -8,7 +8,7 @@ export default function MainLayout() {
     { path: "/", label: "首页", icon: "🏠" },
     { path: "/learn", label: "学习", icon: "📖" },
     { path: "/review", label: "复习", icon: "🔄" },
-    { path: "/reference", label: "词典", icon: "📚" },
+    { path: "/resources", label: "资源", icon: "📚" },
     { path: "/progress", label: "进度", icon: "📊" },
     { path: "/onboarding", label: "设置", icon: "⚙️" },
   ];
