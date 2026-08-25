@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { VocabularyEngine } from "@/engines/vocabulary";
 import { SRSEngine } from "@/engines/srs";
 import { CurriculumEngine } from "@/engines/curriculum";
+import { VOCABULARY_STATS } from "@/engines/vocabulary/data/all-words";
 
 // ============================================================
 // Types
@@ -100,7 +101,7 @@ export default function ProgressDashboard() {
       const streak = calculateStreak();
 
       setStats({
-        totalWords: vocabStats.totalSeen || 300, // Total available
+        totalWords: vocabStats.totalSeen || VOCABULARY_STATS.TOTAL, // Total available
         masteredWords: vocabStats.mastered,
         learningWords: vocabStats.learning,
         newWords: vocabStats.new,
@@ -121,10 +122,10 @@ export default function ProgressDashboard() {
       console.error("Failed to load stats:", error);
       // Use default stats
       setStats({
-        totalWords: 300,
+        totalWords: VOCABULARY_STATS.TOTAL,
         masteredWords: 0,
         learningWords: 0,
-        newWords: 300,
+        newWords: VOCABULARY_STATS.TOTAL,
         accuracy: 0,
         streak: 0,
         todayTasks: 5,

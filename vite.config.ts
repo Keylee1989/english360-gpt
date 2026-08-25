@@ -22,6 +22,7 @@ export default defineConfig({
     stripCrossorigin(),
     VitePWA({
       registerType: "autoUpdate",
+      version: "2.0.0",
       includeAssets: ["favicon.svg", "icons/*.png"],
       manifest: {
         name: "English360 GPT",
@@ -60,6 +61,7 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         runtimeCaching: [
           {
