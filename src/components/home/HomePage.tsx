@@ -247,9 +247,9 @@ export default function HomePage() {
         </div>
         <div className="card text-center">
           <div className="text-2xl font-bold text-primary-600">
-            {profile.dailyGoalMinutes}
+            {profile.level || 'A1'}
           </div>
-          <div className="text-xs text-gray-500">每日目标(分)</div>
+          <div className="text-xs text-gray-500">当前等级</div>
         </div>
       </div>
 
@@ -273,9 +273,6 @@ export default function HomePage() {
                   <div className="text-2xl">{getActivityIcon(activity.type)}</div>
                   <div className="flex-1">
                     <div className="font-medium">{activity.titleChinese}</div>
-                    <div className="text-xs text-gray-500">
-                      {activity.durationMinutes} 分钟
-                    </div>
                   </div>
                   <div>
                     {isCompleted ? (
@@ -334,22 +331,36 @@ export default function HomePage() {
         >
           <div className="font-medium">开始今日学习</div>
           <div className="text-xs text-primary-100">
-            {mission?.totalTimeMinutes || 240} 分钟 · {totalCount - completedCount} 个任务待完成
+            {totalCount - completedCount} 个任务待完成
           </div>
+        </button>
+        <button
+          onClick={() => navigate("/level-test")}
+          className="w-full rounded-lg bg-amber-50 px-4 py-3 text-left text-amber-700 transition-colors hover:bg-amber-100"
+        >
+          <div className="font-medium">🎯 水平测试</div>
+          <div className="text-xs text-amber-600">快速了解你的英语水平</div>
+        </button>
+        <button
+          onClick={() => navigate("/resources/external")}
+          className="w-full rounded-lg bg-green-50 px-4 py-3 text-left text-green-700 transition-colors hover:bg-green-100"
+        >
+          <div className="font-medium">📚 学习资源</div>
+          <div className="text-xs text-green-600">按等级分级的外部学习资源</div>
         </button>
         <button
           onClick={() => navigate("/review")}
           className="w-full rounded-lg bg-gray-100 px-4 py-3 text-left text-gray-700 transition-colors hover:bg-gray-200"
         >
-          <div className="font-medium">复习单词</div>
+          <div className="font-medium">🔄 复习单词</div>
           <div className="text-xs text-gray-500">SRS智能复习</div>
         </button>
         <button
-          onClick={() => navigate("/progress")}
+          onClick={() => navigate("/resources")}
           className="w-full rounded-lg bg-gray-100 px-4 py-3 text-left text-gray-700 transition-colors hover:bg-gray-200"
         >
-          <div className="font-medium">查看进度</div>
-          <div className="text-xs text-gray-500">学习统计和分析</div>
+          <div className="font-medium">📖 词典与语法</div>
+          <div className="text-xs text-gray-500">搜索20,000+词汇和175+语法规则</div>
         </button>
       </div>
 

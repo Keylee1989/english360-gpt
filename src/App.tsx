@@ -12,6 +12,8 @@ import ConversationPracticePage from "./components/practice/ConversationPractice
 import PronunciationPracticePage from "./components/practice/PronunciationPracticePage";
 import ReferencePage from "./components/reference/ReferencePage";
 import MediaLibraryPage from "./components/resources/MediaLibraryPage";
+import LearningResourcesPage from "./components/resources/LearningResourcesPage";
+import LevelTestPage from "./components/assessment/LevelTestPage";
 import NotFoundPage from "./components/common/NotFoundPage";
 
 function App() {
@@ -30,6 +32,8 @@ function App() {
         <Route path="practice/pronunciation" element={<PronunciationPracticePage />} />
         <Route path="reference" element={<ReferencePage />} />
         <Route path="resources" element={<MediaLibraryPage />} />
+        <Route path="resources/external" element={<LearningResourcesPage />} />
+        <Route path="level-test" element={<LevelTestPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
