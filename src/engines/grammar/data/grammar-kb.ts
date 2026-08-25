@@ -581,6 +581,11 @@ const COMMON_ERRORS: GrammarRule[] = [
 // ============================================================
 
 import { ADVANCED_GRAMMAR_RULES } from "./grammar-advanced";
+import { BATCH2_GRAMMAR_RULES } from "./grammar-batch2";
+import { BATCH3_GRAMMAR_RULES } from "./grammar-batch3";
+import { BATCH4_GRAMMAR_RULES } from "./grammar-batch4";
+import { BATCH5_GRAMMAR_RULES } from "./grammar-batch5";
+import { BATCH6_GRAMMAR_RULES } from "./grammar-batch6";
 
 export const ALL_GRAMMAR_RULES: GrammarRule[] = [
   ...PARTS_OF_SPEECH,
@@ -593,6 +598,11 @@ export const ALL_GRAMMAR_RULES: GrammarRule[] = [
   ...RELATIVE,
   ...COMMON_ERRORS,
   ...ADVANCED_GRAMMAR_RULES,
+  ...BATCH2_GRAMMAR_RULES,
+  ...BATCH3_GRAMMAR_RULES,
+  ...BATCH4_GRAMMAR_RULES,
+  ...BATCH5_GRAMMAR_RULES,
+  ...BATCH6_GRAMMAR_RULES,
 ];
 
 export const GRAMMAR_STATS = {

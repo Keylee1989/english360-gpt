@@ -349,6 +349,13 @@ export default function HomePage() {
           <div className="text-xs text-green-600">按等级分级的外部学习资源</div>
         </button>
         <button
+          onClick={() => navigate("/quiz")}
+          className="w-full rounded-lg bg-purple-50 px-4 py-3 text-left text-purple-700 transition-colors hover:bg-purple-100"
+        >
+          <div className="font-medium">🎯 随机知识问答</div>
+          <div className="text-xs text-purple-600">词汇+语法+音标混合测试</div>
+        </button>
+        <button
           onClick={() => navigate("/review")}
           className="w-full rounded-lg bg-gray-100 px-4 py-3 text-left text-gray-700 transition-colors hover:bg-gray-200"
         >
