@@ -119,11 +119,12 @@ export default function HomePage() {
   // Load profile and generate mission
   useEffect(() => {
     const loadAndGenerate = () => {
-      // Load profile from storage
+      // Load profile from storage (persist on first run so activity pages can update it)
       const savedProfile = loadFromStorage<LearnerProfile>(
         STORAGE_KEYS.USER_PROFILE,
         DEFAULT_PROFILE
       );
+      saveToStorage(STORAGE_KEYS.USER_PROFILE, savedProfile);
       setProfile(savedProfile);
 
       // Load completed activities for today
@@ -142,6 +143,17 @@ export default function HomePage() {
     };
 
     loadAndGenerate();
+
+    // Refresh progress when an activity page reports completion (same-tab event)
+    const onActivityComplete = () => {
+      const today = new Date().toISOString().split("T")[0];
+      setCompletedActivities(
+        loadFromStorage<string[]>(`${STORAGE_KEYS.COMPLETED_ACTIVITIES}_${today}`, [])
+      );
+      setProfile(loadFromStorage<LearnerProfile>(STORAGE_KEYS.USER_PROFILE, DEFAULT_PROFILE));
+    };
+    window.addEventListener("english360_activity_complete", onActivityComplete);
+    return () => window.removeEventListener("english360_activity_complete", onActivityComplete);
   }, [coach]);
 
   // Handle activity completion
@@ -325,6 +337,13 @@ export default function HomePage() {
 
       {/* Quick Actions */}
       <div className="space-y-2 mb-4">
+        <button
+          onClick={() => navigate("/path")}
+          className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-left text-white transition-colors hover:bg-indigo-700"
+        >
+          <div className="font-medium">🗺️ 我的英语之路（A1→C2通关）</div>
+          <div className="text-xs text-indigo-100">查看学习地图 · 做测试解锁下一级</div>
+        </button>
         <button
           onClick={() => navigate("/learn")}
           className="w-full rounded-lg bg-primary-500 px-4 py-3 text-left text-white transition-colors hover:bg-primary-600"

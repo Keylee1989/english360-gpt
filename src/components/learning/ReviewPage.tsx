@@ -9,8 +9,10 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { DAY_1_CURRICULUM } from "@/engines/curriculum/data/day1-detailed";
 import type { VocabularyWord } from "@/engines/curriculum/data/day1-detailed";
+import { markActivityComplete, updateProfileAfterActivity } from "@/services/activity-completion";
 
 // ============================================================
 // Types
@@ -101,6 +103,7 @@ function generateQuizOptions(
 // ============================================================
 
 export default function ReviewPage() {
+  const navigate = useNavigate();
   const [reviewState, setReviewState] = useState<ReviewState>({
     currentIndex: 0,
     totalItems: 0,
@@ -193,6 +196,19 @@ export default function ReviewPage() {
       completed: false,
     });
   }, [reviewItems]);
+
+  // When review completes: report completion to home progress + update profile
+  useEffect(() => {
+    if (!reviewState.completed) return;
+    const total = reviewState.correctCount + reviewState.incorrectCount;
+    const accuracy = total > 0 ? reviewState.correctCount / total : 0;
+    // Mastered words: correct answers count as learned; ≥80% overall counts them mastered
+    updateProfileAfterActivity({
+      wordsLearned: reviewState.correctCount,
+      wordsMastered: accuracy >= 0.8 ? reviewState.correctCount : Math.floor(reviewState.correctCount / 2),
+    });
+    markActivityComplete("srs_review");
+  }, [reviewState.completed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============================================================
   // Empty state: no words to review
@@ -287,10 +303,10 @@ export default function ReviewPage() {
               </button>
             )}
             <button
-              onClick={() => window.history.back()}
+              onClick={() => navigate("/")}
               className="w-full rounded-lg border-2 border-primary-500 px-4 py-3 font-medium text-primary-600"
             >
-              ✅ 完成，返回学习
+              ✅ 完成，返回首页（进度已保存）
             </button>
           </div>
         </div>

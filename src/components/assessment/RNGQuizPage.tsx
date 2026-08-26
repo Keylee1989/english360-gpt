@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { markActivityComplete, updateProfileAfterActivity } from "@/services/activity-completion";
 import { useNavigate } from "react-router-dom";
 import { DEDUPLICATED_VOCABULARY } from "../../engines/vocabulary/data/all-words";
 import { ALL_GRAMMAR_RULES } from "../../engines/grammar/data/grammar-kb";
@@ -239,6 +240,13 @@ export default function RNGQuizPage() {
       setShowExplanation(false);
     }
   }, [currentIndex, totalQuestions]);
+
+  // Report quiz completion to home progress
+  useEffect(() => {
+    if (!quizComplete) return;
+    updateProfileAfterActivity({ wordsLearned: Math.round(score / 25) });
+    markActivityComplete("assessment");
+  }, [quizComplete]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const getGrade = (score: number, total: number) => {
     const pct = (score / (total * 25)) * 100;

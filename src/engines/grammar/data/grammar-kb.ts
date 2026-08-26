@@ -586,6 +586,14 @@ import { BATCH3_GRAMMAR_RULES } from "./grammar-batch3";
 import { BATCH4_GRAMMAR_RULES } from "./grammar-batch4";
 import { BATCH5_GRAMMAR_RULES } from "./grammar-batch5";
 import { BATCH6_GRAMMAR_RULES } from "./grammar-batch6";
+import { BATCH7_GRAMMAR_RULES } from "./grammar-batch7";
+import { BATCH8_GRAMMAR_RULES } from "./grammar-batch8";
+import { BATCH9_GRAMMAR_RULES } from "./grammar-batch9";
+import { BATCH10_GRAMMAR_RULES } from "./grammar-batch10";
+import { BATCH11_GRAMMAR_RULES } from "./grammar-batch11";
+import { BATCH12_GRAMMAR_RULES } from "./grammar-batch12";
+import { BATCH13_GRAMMAR_RULES } from "./grammar-batch13";
+import { BATCH14_GRAMMAR_RULES } from "./grammar-batch14";
 
 export const ALL_GRAMMAR_RULES: GrammarRule[] = [
   ...PARTS_OF_SPEECH,
@@ -603,6 +611,14 @@ export const ALL_GRAMMAR_RULES: GrammarRule[] = [
   ...BATCH4_GRAMMAR_RULES,
   ...BATCH5_GRAMMAR_RULES,
   ...BATCH6_GRAMMAR_RULES,
+  ...BATCH7_GRAMMAR_RULES,
+  ...BATCH8_GRAMMAR_RULES,
+  ...BATCH9_GRAMMAR_RULES,
+  ...BATCH10_GRAMMAR_RULES,
+  ...BATCH11_GRAMMAR_RULES,
+  ...BATCH12_GRAMMAR_RULES,
+  ...BATCH13_GRAMMAR_RULES,
+  ...BATCH14_GRAMMAR_RULES,
 ];
 
 export const GRAMMAR_STATS = {

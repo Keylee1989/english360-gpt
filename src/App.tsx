@@ -14,6 +14,7 @@ import ReferencePage from "./components/reference/ReferencePage";
 import MediaLibraryPage from "./components/resources/MediaLibraryPage";
 import LearningResourcesPage from "./components/resources/LearningResourcesPage";
 import LevelTestPage from "./components/assessment/LevelTestPage";
+import LevelPathPage from "./components/path/LevelPathPage";
 import RNGQuizPage from "./components/assessment/RNGQuizPage";
 import NotFoundPage from "./components/common/NotFoundPage";
 
@@ -35,6 +36,7 @@ function App() {
         <Route path="resources" element={<MediaLibraryPage />} />
         <Route path="resources/external" element={<LearningResourcesPage />} />
         <Route path="level-test" element={<LevelTestPage />} />
+        <Route path="path" element={<LevelPathPage />} />
         <Route path="quiz" element={<RNGQuizPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
