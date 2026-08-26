@@ -1,5 +1,10 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { ALL_GRAMMAR_RULES, type GrammarRule } from "../../engines/grammar/data/grammar-kb";
+import {
+  ALL_GRAMMAR_RULES,
+  GRAMMAR_CATEGORY_GROUPS,
+  getGrammarGroup,
+  type GrammarRule,
+} from "../../engines/grammar/data/grammar-kb";
 import { ALL_VOCABULARY, VOCABULARY_STATS } from "../../engines/vocabulary/data/all-words";
 import type { VocabularyItem } from "../../engines/vocabulary/index";
 
@@ -79,16 +84,63 @@ const LEVEL_LABELS: Record<string, string> = {
   C2: "C2 精通",
 };
 
+// TTS 播放工具
+function speak(text: string, rate = 0.85) {
+  try {
+    speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = "en-US";
+    utt.rate = rate;
+    speechSynthesis.speak(utt);
+  } catch {
+    /* 忽略 */
+  }
+}
+
 export default function ReferencePage() {
   const [activeTab, setActiveTab] = useState<TabType>("vocabulary");
   const [query, setQuery] = useState("");
   const [diffFilter, setDiffFilter] = useState<string>("all");
   const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [subCatFilter, setSubCatFilter] = useState<string>("all");
   const [selectedGrammar, setSelectedGrammar] = useState<GrammarRule | null>(null);
   const [expandedWord, setExpandedWord] = useState<string | null>(null);
   const [cached, setCached] = useState(false);
   const [gramPage, setGramPage] = useState(0);
   const PAGE_SIZE = 50;
+
+  // 等级计数（让筛选选项自带数量，避免误以为数据缺失）
+  const levelCounts = useMemo(() => {
+    const c: Record<string, number> = { all: ALL_GRAMMAR_RULES.length };
+    for (const lv of ["A1", "A2", "B1", "B2", "C1", "C2"] as const) {
+      c[lv] = ALL_GRAMMAR_RULES.filter((r) => r.level === lv).length;
+    }
+    return c;
+  }, []);
+
+  // 大类 → 子分类（全中文，带数量）
+  const groupCounts = useMemo(() => {
+    const c: Record<string, number> = { all: ALL_GRAMMAR_RULES.length };
+    for (const r of ALL_GRAMMAR_RULES) {
+      const g = getGrammarGroup(r.categoryChinese || r.category).key;
+      c[g] = (c[g] || 0) + 1;
+    }
+    return c;
+  }, []);
+
+  const subCategories = useMemo(() => {
+    if (groupFilter === "all") return [];
+    const g = GRAMMAR_CATEGORY_GROUPS.find((x) => x.key === groupFilter);
+    const cats = g ? g.categories : [];
+    return cats
+      .map((cat) => ({
+        cat,
+        count: ALL_GRAMMAR_RULES.filter((r) => (r.categoryChinese || r.category) === cat).length,
+      }))
+      .filter((x) => x.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }, [groupFilter]);
 
   // Cache data to IndexedDB on mount
   useEffect(() => {
@@ -136,8 +188,16 @@ export default function ReferencePage() {
     if (levelFilter !== "all") {
       results = results.filter((r) => r.level === levelFilter);
     }
+    if (groupFilter !== "all") {
+      results = results.filter(
+        (r) => getGrammarGroup(r.categoryChinese || r.category).key === groupFilter
+      );
+    }
+    if (subCatFilter !== "all") {
+      results = results.filter((r) => (r.categoryChinese || r.category) === subCatFilter);
+    }
     return results;
-  }, [query, levelFilter]);
+  }, [query, levelFilter, groupFilter, subCatFilter]);
 
   const grammarPageResults = useMemo(() => {
     return grammarResults.slice(gramPage * PAGE_SIZE, (gramPage + 1) * PAGE_SIZE);
@@ -150,6 +210,8 @@ export default function ReferencePage() {
     setSelectedGrammar(null);
     setExpandedWord(null);
     setGramPage(0);
+    setGroupFilter("all");
+    setSubCatFilter("all");
   }, []);
 
   // ---- Render ----
@@ -233,16 +295,74 @@ export default function ReferencePage() {
           </select>
         </div>
       ) : (
-        <div className="mb-4 flex flex-wrap gap-2">
-          <select
-            value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value as LevelFilter)}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
-          >
-            {Object.entries(LEVEL_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+        <div className="mb-4 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value as LevelFilter)}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            >
+              {Object.entries(LEVEL_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v} ({levelCounts[k] ?? 0})
+                </option>
+              ))}
+            </select>
+            <select
+              value={groupFilter}
+              onChange={(e) => {
+                setGroupFilter(e.target.value);
+                setSubCatFilter("all");
+                setGramPage(0);
+              }}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+            >
+              <option value="all">📚 全部分类 ({groupCounts.all})</option>
+              {GRAMMAR_CATEGORY_GROUPS.map((g) => (
+                <option key={g.key} value={g.key}>
+                  {g.icon} {g.label} ({groupCounts[g.key] ?? 0})
+                </option>
+              ))}
+              <option value="misc">📦 综合其他 ({groupCounts["misc"] ?? 0})</option>
+            </select>
+            {groupFilter !== "all" && (
+              <select
+                value={subCatFilter}
+                onChange={(e) => {
+                  setSubCatFilter(e.target.value);
+                  setGramPage(0);
+                }}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-sm"
+              >
+                <option value="all">全部子分类</option>
+                {subCategories.map(({ cat, count }) => (
+                  <option key={cat} value={cat}>
+                    {cat} ({count})
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          {/* 体系总览：点击大类快速筛选 */}
+          <div className="flex flex-wrap gap-1.5">
+            {GRAMMAR_CATEGORY_GROUPS.map((g) => (
+              <button
+                key={g.key}
+                onClick={() => {
+                  setGroupFilter(groupFilter === g.key ? "all" : g.key);
+                  setSubCatFilter("all");
+                  setGramPage(0);
+                }}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                  groupFilter === g.key
+                    ? "bg-blue-600 text-white"
+                    : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                }`}
+              >
+                {g.icon} {g.label} · {groupCounts[g.key] ?? 0}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       )}
 
@@ -323,65 +443,90 @@ export default function ReferencePage() {
                 </div>
               </button>
 
-              {/* Expanded details */}
+              {/* 展开详情：完整学习数据 */}
               {expandedWord === w.word && (
-                <div className="mt-3 border-t border-gray-100 pt-3 text-sm">
-                  {w.memoryMethods?.chinesePronHint && (
-                    <div className="mb-1">
-                      <span className="font-medium text-gray-700">发音提示：</span>
-                      <span className="text-gray-600">{w.memoryMethods.chinesePronHint}</span>
+                <div className="mt-3 space-y-2 border-t border-gray-100 pt-3 text-sm">
+                  {/* 发音：谐音注音 + TTS */}
+                  <div className="flex flex-wrap items-center gap-2 rounded-lg bg-blue-50 px-3 py-2">
+                    <span className="font-mono text-blue-800">{w.ipa}</span>
+                    {w.memoryMethods?.chinesePronHint && (
+                      <span className="text-blue-700">谐音：{w.memoryMethods.chinesePronHint}</span>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); speak(w.word); }} className="rounded bg-blue-600 px-2.5 py-1 text-xs text-white hover:bg-blue-700">🔊 正常</button>
+                    <button onClick={(e) => { e.stopPropagation(); speak(w.word, 0.55); }} className="rounded bg-blue-100 px-2.5 py-1 text-xs text-blue-700 hover:bg-blue-200">🐢 慢速</button>
+                  </div>
+
+                  {/* 自然拼读 */}
+                  {w.phonicsBreakdown && (
+                    <div><span className="font-medium text-gray-700">🧩 自然拼读：</span><span className="text-gray-600">{w.phonicsBreakdown}</span></div>
+                  )}
+
+                  {/* 用法说明 */}
+                  {(w.memoryMethods as any)?.usage && (
+                    <div className="rounded bg-amber-50 px-3 py-2"><span className="font-medium text-amber-800">📝 怎么用：</span><span className="text-amber-900">{(w.memoryMethods as any).usage}</span></div>
+                  )}
+
+                  {/* 常用搭配 */}
+                  {w.collocations && w.collocations.length > 0 && (
+                    <div>
+                      <span className="font-medium text-gray-700">🔗 常用搭配：</span>
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {w.collocations.slice(0, 5).map((c, i) => (
+                          <span key={i} className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">
+                            {c.pattern}{c.chinese ? `（${c.chinese}）` : ""}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
+
+                  {/* 词根·词缀·词源 */}
+                  {w.memoryMethods?.root && w.memoryMethods.root.length > 0 && (
+                    <div><span className="font-medium text-gray-700">🌱 词根词源：</span><span className="text-gray-600">{w.memoryMethods.root}</span></div>
+                  )}
+
+                  {/* 联想记忆 */}
                   {w.memoryMethods?.association && (
-                    <div className="mb-1">
-                      <span className="font-medium text-gray-700">记忆法：</span>
-                      <span className="text-gray-600">{w.memoryMethods.association}</span>
-                    </div>
+                    <div><span className="font-medium text-gray-700">💡 联想记忆：</span><span className="text-gray-600">{w.memoryMethods.association}</span></div>
                   )}
+
+                  {/* 对比 + 故事（mnemonic 多行） */}
+                  {w.memoryMethods?.mnemonic &&
+                    w.memoryMethods.mnemonic.split("\n").map((line, i) => {
+                      const clean = line.replace(/^⚖️ |^🎬 /, "");
+                      if (!clean.trim()) return null;
+                      return (
+                        <div key={i}>
+                          <span className="font-medium text-gray-700">{line.startsWith("⚖️") ? "⚖️ 对比记忆：" : line.startsWith("🎬") ? "🎬 故事串联：" : "🧠 记忆法："}</span>
+                          <span className="text-gray-600">{clean}</span>
+                        </div>
+                      );
+                    })}
+
+                  {/* 例句（带发音） */}
                   {w.examples && w.examples.length > 0 && (
-                    <div className="mb-1">
-                      <span className="font-medium text-gray-700">例句：</span>
-                      {w.examples.slice(0, 2).map((ex, i) => (
-                        <div key={i} className="mt-0.5">
-                          <span className="italic text-gray-600">{ex.english}</span>
-                          <span className="ml-1 text-gray-500">— {ex.chinese}</span>
+                    <div>
+                      <span className="font-medium text-gray-700">💬 例句：</span>
+                      {w.examples.slice(0, 3).map((ex, i) => (
+                        <div key={i} className="mt-1 flex items-start justify-between gap-2 rounded bg-gray-50 px-2.5 py-1.5">
+                          <div>
+                            <div className="italic text-gray-700">{ex.english}</div>
+                            <div className="text-xs text-gray-500">{ex.chinese}</div>
+                          </div>
+                          <button onClick={(e) => { e.stopPropagation(); speak(ex.english); }} className="shrink-0 rounded bg-white px-2 py-0.5 text-xs text-blue-600 shadow-sm">🔊</button>
                         </div>
                       ))}
                     </div>
                   )}
-                  {w.commonErrors && w.commonErrors.length > 0 && (
-                    <div className="mb-1">
-                      <span className="font-medium text-gray-700">常见错误：</span>
-                      {w.commonErrors.map((err, i) => (
-                        <span key={i} className="ml-1 text-red-500">{err.error}</span>
-                      ))}
-                    </div>
-                  )}
-                  {w.synonyms && w.synonyms.length > 0 && (
-                    <div className="mb-1">
-                      <span className="font-medium text-gray-700">同义词：</span>
-                      <span className="text-gray-600">{w.synonyms.join(", ")}</span>
-                    </div>
-                  )}
-                  {w.antonyms && w.antonyms.length > 0 && (
-                    <div className="mb-1">
-                      <span className="font-medium text-gray-700">反义词：</span>
-                      <span className="text-gray-600">{w.antonyms.join(", ")}</span>
-                    </div>
-                  )}
-                  <div className="mt-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const utt = new SpeechSynthesisUtterance(w.word);
-                        utt.lang = "en-US";
-                        utt.rate = 0.8;
-                        speechSynthesis.speak(utt);
-                      }}
-                      className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100"
-                    >
-                      🔊 发音
-                    </button>
+
+                  {/* 同义词/反义词 */}
+                  <div className="flex flex-wrap gap-x-4">
+                    {w.synonyms && w.synonyms.length > 0 && (
+                      <div><span className="font-medium text-gray-700">同义词：</span><span className="text-gray-600">{w.synonyms.join(", ")}</span></div>
+                    )}
+                    {w.antonyms && w.antonyms.length > 0 && (
+                      <div><span className="font-medium text-gray-700">反义词：</span><span className="text-gray-600">{w.antonyms.join(", ")}</span></div>
+                    )}
                   </div>
                 </div>
               )}
@@ -399,30 +544,6 @@ export default function ReferencePage() {
       {/* ============ GRAMMAR RESULTS ============ */}
       {activeTab === "grammar" && (
         <div className="space-y-3">
-          {/* Category chips */}
-          <div className="mb-4 flex flex-wrap gap-1.5">
-            {[
-              ...new Set(ALL_GRAMMAR_RULES.map((r) => r.category)),
-            ].map((cat) => {
-              const count = ALL_GRAMMAR_RULES.filter(
-                (r) => r.category === cat
-              ).length;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setQuery(cat)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                    query === cat
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {cat} ({count})
-                </button>
-              );
-            })}
-          </div>
-
           {grammarResults.length === 0 && (
             <div className="py-12 text-center text-gray-400">
               没有找到匹配的语法规则

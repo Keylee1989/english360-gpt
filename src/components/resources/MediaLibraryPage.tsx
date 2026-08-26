@@ -10,7 +10,7 @@
 
 import { useState, useMemo } from "react";
 import { DEDUPLICATED_VOCABULARY, VOCABULARY_STATS } from "@/engines/vocabulary/data/all-words";
-import { ALL_GRAMMAR_RULES, GRAMMAR_STATS } from "@/engines/grammar/data/grammar-kb";
+import { ALL_GRAMMAR_RULES, GRAMMAR_STATS, GRAMMAR_CATEGORY_GROUPS, getGrammarGroup } from "@/engines/grammar/data/grammar-kb";
 import type { VocabularyItem } from "@/engines/vocabulary";
 import type { GrammarRule } from "@/engines/grammar/data/grammar-kb";
 
@@ -105,6 +105,7 @@ export default function MediaLibraryPage() {
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [grammarCategory, setGrammarCategory] = useState("all");
+  const [grammarGroupKey, setGrammarGroupKey] = useState("all");
 
   const filteredVocab = useMemo(() => {
     let words = DEDUPLICATED_VOCABULARY;
@@ -118,12 +119,33 @@ export default function MediaLibraryPage() {
 
   const filteredGrammar = useMemo(() => {
     let rules = ALL_GRAMMAR_RULES;
-    if (grammarCategory !== "all") rules = rules.filter(r => r.category === grammarCategory);
+    if (grammarCategory !== "all") rules = rules.filter(r => (r.categoryChinese || r.category) === grammarCategory);
+    if (grammarGroupKey !== "all") {
+      rules = rules.filter(r => getGrammarGroup(r.categoryChinese || r.category).key === grammarGroupKey);
+    }
     if (selectedLevel !== "all") rules = rules.filter(r => r.level === selectedLevel);
     return rules;
-  }, [grammarCategory, selectedLevel]);
+  }, [grammarCategory, grammarGroupKey, selectedLevel]);
 
-  const grammarCategories = [...new Set(ALL_GRAMMAR_RULES.map(r => r.category))];
+  // 大类（全中文，带数量）
+  const grammarGroups = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const r of ALL_GRAMMAR_RULES) {
+      const g = getGrammarGroup(r.categoryChinese || r.category).key;
+      counts[g] = (counts[g] || 0) + 1;
+    }
+    return { counts };
+  }, []);
+
+  const grammarSubCats = useMemo(() => {
+    if (grammarGroupKey === "all") return [];
+    const g = GRAMMAR_CATEGORY_GROUPS.find(x => x.key === grammarGroupKey);
+    const cats = g ? g.categories : [];
+    return cats
+      .map(cat => ({ cat, count: ALL_GRAMMAR_RULES.filter(r => (r.categoryChinese || r.category) === cat).length }))
+      .filter(x => x.count > 0)
+      .sort((a, b) => b.count - a.count);
+  }, [grammarGroupKey]);
 
   const getLevelCount = (level: string) => {
     if (level === "all") return VOCABULARY_STATS.TOTAL;
@@ -177,12 +199,23 @@ export default function MediaLibraryPage() {
 
         {activeTab === "grammar" && (
           <div className="space-y-3">
-            <select className="w-full px-3 py-2 border border-gray-200 rounded-lg" value={grammarCategory} onChange={e => setGrammarCategory(e.target.value)}>
-              <option value="all">全部语法类别 ({ALL_GRAMMAR_RULES.length})</option>
-              {grammarCategories.map(cat => (
-                <option key={cat} value={cat}>{cat} ({ALL_GRAMMAR_RULES.filter(r => r.category === cat).length})</option>
-              ))}
-            </select>
+            <div className="flex flex-wrap gap-2">
+              <select className="flex-1 min-w-36 px-3 py-2 border border-gray-200 rounded-lg" value={grammarGroupKey} onChange={e => { setGrammarGroupKey(e.target.value); setGrammarCategory("all"); }}>
+                <option value="all">📚 全部分类 ({ALL_GRAMMAR_RULES.length})</option>
+                {GRAMMAR_CATEGORY_GROUPS.map(g => (
+                  <option key={g.key} value={g.key}>{g.icon} {g.label} ({grammarGroups.counts[g.key] || 0})</option>
+                ))}
+                <option value="misc">📦 综合其他 ({grammarGroups.counts["misc"] || 0})</option>
+              </select>
+              {grammarGroupKey !== "all" && (
+                <select className="flex-1 min-w-36 px-3 py-2 border border-gray-200 rounded-lg" value={grammarCategory} onChange={e => setGrammarCategory(e.target.value)}>
+                  <option value="all">全部子分类</option>
+                  {grammarSubCats.map(({ cat, count }) => (
+                    <option key={cat} value={cat}>{cat} ({count})</option>
+                  ))}
+                </select>
+              )}
+            </div>
             <div className="text-sm text-gray-500">显示 {filteredGrammar.length} 条语法规则</div>
             <div className="space-y-2">
               {filteredGrammar.map(rule => <GrammarCard key={rule.id} rule={rule} />)}

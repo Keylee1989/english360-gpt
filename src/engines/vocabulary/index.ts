@@ -21,11 +21,12 @@ import { SRSEngine } from "../srs";
 
 export interface MemoryMethods {
   association?: string;      // Visual/situational association
-  mnemonic?: string;         // Memory technique
-  chinesePronHint?: string;  // Chinese pronunciation hint (谐音)
-  root?: string;             // Root word origin
+  mnemonic?: string;         // Memory technique（对比记忆\n故事串联 多行打包）
+  chinesePronHint?: string;  // Chinese pronunciation hint (谐音注音)
+  root?: string;             // Root word origin（词根·词缀·词源）
   prefix?: string;           // Prefix meaning
   suffix?: string;           // Suffix meaning
+  usage?: string;            // 用法说明（按词性的句型指导）
 }
 
 // ============================================================

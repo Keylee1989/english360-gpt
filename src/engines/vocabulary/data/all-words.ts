@@ -13,7 +13,7 @@
  */
 
 import { UNIQUE_BEGINNER_WORDS } from "./beginner-words";
-import { generateWordBatch } from "./vocab-generator";
+import { generateWordBatch, enrichVocabularyItem } from "./vocab-generator";
 import type { VocabularyItem } from "../index";
 
 // ============================================================
@@ -86,6 +86,7 @@ const C1_GEN_VOCAB: VocabularyItem[] = generateWordBatch(
 // Combine all words
 // ============================================================
 
+// 统一增强：手工词库（beginner/bulk）也补齐谐音、拼读、用法、搭配、记忆法
 export const ALL_VOCABULARY: VocabularyItem[] = [
   ...A1_VOCAB,
   ...A2_VOCAB,
@@ -96,7 +97,7 @@ export const ALL_VOCABULARY: VocabularyItem[] = [
   ...BULK_VOCAB,
   ...B2_GEN_VOCAB,
   ...C1_GEN_VOCAB,
-];
+].map(enrichVocabularyItem);
 
 // Deduplicate by word (case-insensitive, keep first occurrence)
 const seen = new Set<string>();

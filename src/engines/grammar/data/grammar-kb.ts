@@ -595,6 +595,8 @@ import { BATCH12_GRAMMAR_RULES } from "./grammar-batch12";
 import { BATCH13_GRAMMAR_RULES } from "./grammar-batch13";
 import { BATCH14_GRAMMAR_RULES } from "./grammar-batch14";
 
+// 去重：相同 id 只保留首条，保证计数真实
+const _seenRuleIds = new Set<string>();
 export const ALL_GRAMMAR_RULES: GrammarRule[] = [
   ...PARTS_OF_SPEECH,
   ...TENSES,
@@ -619,7 +621,41 @@ export const ALL_GRAMMAR_RULES: GrammarRule[] = [
   ...BATCH12_GRAMMAR_RULES,
   ...BATCH13_GRAMMAR_RULES,
   ...BATCH14_GRAMMAR_RULES,
+].filter((r) => {
+  if (_seenRuleIds.has(r.id)) return false;
+  _seenRuleIds.add(r.id);
+  return true;
+});
+
+// ============================================================
+// 系统性分类体系（大类 → 子分类，全中文）
+// ============================================================
+
+/** 大类定义：覆盖美国学校语法教学的完整体系 */
+export const GRAMMAR_CATEGORY_GROUPS: Array<{ key: string; label: string; icon: string; categories: string[] }> = [
+  { key: "morphology", label: "词法基础", icon: "🔤", categories: ["词性", "代词（高级）", "限定词", "数量词", "构词法"] },
+  { key: "verb", label: "动词·时态·语态", icon: "⏰", categories: ["时态", "高级时态", "被动语态", "被动语态（高级）", "情态动词", "情态动词（高级）", "高级情态动词", "过去习惯", "将来计划"] },
+  { key: "verb-patterns", label: "动词句型与短语动词", icon: "🔗", categories: ["动名词与不定式", "动名词与不定式（高级）", "短语动词", "短语动词扩展", "动词模式", "动词句型扩展", "使役结构"] },
+  { key: "sentence", label: "句子结构", icon: "🏗️", categories: ["句子结构", "句子类型", "句型", "常见句型", "高级句型", "疑问句", "强调句", "倒装句", "分词从句", "省略句"] },
+  { key: "clauses", label: "从句", icon: "🌳", categories: ["关系从句", "名词性从句", "状语从句", "连接词", "连词（高级）"] },
+  { key: "conditional", label: "条件与虚拟", icon: "🎲", categories: ["条件句", "条件句（高级）", "Wish与If Only", "虚拟语气", "used to与would"] },
+  { key: "compare", label: "比较与引用", icon: "⚖️", categories: ["比较级与最高级", "间接引语"] },
+  { key: "article-prep", label: "冠词·介词·连词", icon: "📌", categories: ["冠词", "冠词（高级）", "介词搭配", "介词（高级）", "高级介词", "连词搭配"] },
+  { key: "collocation", label: "搭配·习语·易混词", icon: "🧩", categories: ["固定搭配", "词语搭配", "词语搭配扩展", "常用习语", "习语表达", "习语表达扩展", "易混淆词", "易混淆词扩展", "正式与非正式", "语域与语体"] },
+  { key: "pragmatic", label: "交际与功能英语", icon: "💬", categories: ["交际用语", "高级交际", "日常功能英语"] },
+  { key: "writing", label: "写作与学术", icon: "✍️", categories: ["写作结构", "写作句型", "学术写作", "学术与写作", "标点与规范", "发音规则"] },
+  { key: "business", label: "商务英语", icon: "💼", categories: ["商务英语"] },
+  { key: "american", label: "美式特色用法", icon: "🇺🇸", categories: ["高级美式用法"] },
+  { key: "errors", label: "易错警示", icon: "⚠️", categories: ["常见错误", "高级常见错误", "中国学习者常见错误"] },
 ];
+
+/** 把任意 categoryChinese 归入大类；未匹配的归入「综合其他」 */
+export function getGrammarGroup(categoryChinese: string): { key: string; label: string; icon: string } {
+  for (const g of GRAMMAR_CATEGORY_GROUPS) {
+    if (g.categories.includes(categoryChinese)) return { key: g.key, label: g.label, icon: g.icon };
+  }
+  return { key: "misc", label: "综合其他", icon: "📦" };
+}
 
 export const GRAMMAR_STATS = {
   total: ALL_GRAMMAR_RULES.length,
