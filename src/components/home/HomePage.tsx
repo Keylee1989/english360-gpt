@@ -585,8 +585,29 @@ export default function HomePage() {
                     </div>
                     {gr.exercise && (
                       <div className="rounded-lg bg-gray-50 p-3 text-sm">
-                        <p className="font-medium mb-1">✏️ 选词填空：</p>
-                        <p>{gr.exercise.q} ({gr.exercise.options.join(' / ')})</p>
+                        <p className="font-medium mb-2">✏️ 选词填空：</p>
+                        <p className="mb-2 text-gray-700">{gr.exercise.q}</p>
+                        <div className="flex gap-2 flex-wrap">
+                          {(gr.exercise.options || []).map((opt: string, oi: number) => (
+                            <button
+                              key={oi}
+                              onClick={() => {
+                                const el = document.getElementById('grammar-exercise-result');
+                                if (el) {
+                                  if (oi === gr.exercise.answer) {
+                                    el.textContent = '✅ 正确！';
+                                    el.className = 'text-sm mt-2 font-medium text-green-600';
+                                  } else {
+                                    el.textContent = `❌ 不对，正确答案是 ${gr.exercise.options[gr.exercise.answer]}`;
+                                    el.className = 'text-sm mt-2 font-medium text-red-500';
+                                  }
+                                }
+                              }}
+                              className="rounded-lg border-2 border-blue-200 px-4 py-2 text-sm font-medium text-blue-700 hover:border-blue-400 hover:bg-blue-50 active:bg-blue-100"
+                            >{opt}</button>
+                          ))}
+                        </div>
+                        <p id="grammar-exercise-result" className="text-sm mt-2"></p>
                       </div>
                     )}
                   </>
