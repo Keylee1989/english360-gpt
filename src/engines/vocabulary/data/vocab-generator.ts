@@ -12,6 +12,7 @@
 
 import type { VocabularyItem } from "../index";
 import type { PartOfSpeech } from "@/types";
+import { getMemoryBoost } from "./memory-boost";
 
 export interface CompactWord {
   w: string;
@@ -949,12 +950,18 @@ export function generateWord(
   const story = generateStory(compact.w, compact.zh);
   const association = compact.mem || generateAssociation(compact.w, compact.zh, morph);
 
-  // 记忆方法打包进 mnemonic：对比 ｜ 故事（展示端按「｜」拆分渲染）
-  const mnemonic = `⚖️ 对比记忆：${comparison}\n🎬 故事串联：${story}`;
+  // 检查是否有专属记忆增强
+  const boost = getMemoryBoost(compact.w);
 
-  // 词根字段：优先词根，其次词源说明
-  const rootText = morph.note ||
-    `${compact.ipa || "/无音标/"}｜共 ${syllables} 个音节｜谐音读作「${homophone}」`;
+  // 记忆方法打包进 mnemonic：对比 ｜ 故事（展示端按「｜」拆分渲染）
+  const mnemonic = boost?.rhyme
+    ? `💡 口诀记忆：${boost.rhyme}\n⚖️ 对比记忆：${comparison}\n🎬 故事串联：${story}`
+    : `⚖️ 对比记忆：${comparison}\n🎬 故事串联：${story}`;
+
+  // 词根字段：优先词根 → 专属拆词 → 词源说明
+  const rootText = boost?.splitting
+    ? `🧩 拆词记忆：${boost.splitting}`
+    : morph.note || `${compact.ipa || "/无音标/"}｜共 ${syllables} 个音节｜谐音读作「${homophone}」`;
 
   const examples = compact.ex
     ? [{ english: compact.ex, chinese: compact.exzh, register: "neutral" as const }]
@@ -1008,8 +1015,12 @@ export function enrichVocabularyItem(item: VocabularyItem): VocabularyItem {
   const pos = item.partOfSpeech?.length ? item.partOfSpeech : parsePos("n");
   const mm = { ...(item.memoryMethods || {}) } as VocabularyItem["memoryMethods"];
 
+  // 专属记忆增强（优先级最高）
+  const boost = getMemoryBoost(w);
+
   // 谐音注音
-  if (!mm.chinesePronHint) mm.chinesePronHint = ipaToHomophone(item.ipa || "") || letterHomophone(w);
+  if (boost?.homophonic && !mm.chinesePronHint) mm.chinesePronHint = boost.homophonic;
+  else if (!mm.chinesePronHint) mm.chinesePronHint = ipaToHomophone(item.ipa || "") || letterHomophone(w);
   // 自然拼读
   if (!item.phonicsBreakdown || item.phonicsBreakdown === w) {
     const syl = countSyllables(w, item.ipa || "");
@@ -1024,12 +1035,16 @@ export function enrichVocabularyItem(item: VocabularyItem): VocabularyItem {
   if (item.roots?.length === 0 && morph.root) item.roots = [{ form: morph.root.form, meaning: morph.root.meaning, origin: morph.root.origin }];
   if (item.prefixes?.length === 0 && morph.prefix) item.prefixes = [{ form: morph.prefix.form, meaning: morph.prefix.meaning }];
   if (item.suffixes?.length === 0 && morph.suffix) item.suffixes = [{ form: morph.suffix.form, meaning: morph.suffix.meaning, creates: morph.suffix.creates }];
-  // 联想
-  if (!mm.association) mm.association = generateAssociation(w, item.chineseMeaning, morph);
-  // 对比 + 故事
+  // 联想（优先用专属场景）
+  if (!mm.association) mm.association = boost?.scene || generateAssociation(w, item.chineseMeaning, morph);
+  // 对比 + 故事（优先用专属口诀）
   if (!mm.mnemonic) {
-    mm.mnemonic = `⚖️ 对比记忆：${generateComparison(item.word, item.chineseMeaning)}\n🎬 故事串联：${generateStory(item.word, item.chineseMeaning)}`;
+    mm.mnemonic = boost?.rhyme
+      ? `💡 口诀记忆：${boost.rhyme}\n⚖️ 对比记忆：${generateComparison(item.word, item.chineseMeaning)}\n🎬 故事串联：${generateStory(item.word, item.chineseMeaning)}`
+      : `⚖️ 对比记忆：${generateComparison(item.word, item.chineseMeaning)}\n🎬 故事串联：${generateStory(item.word, item.chineseMeaning)}`;
   }
+  // 拆词记忆（优先用专属拆词）
+  if (boost?.splitting && !mm.root) mm.root = `🧩 拆词记忆：${boost.splitting}`;
   // 用法
   if (!(mm as any).usage) (mm as any).usage = generateUsage(item.word, pos, item.chineseMeaning);
   // 搭配
