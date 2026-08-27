@@ -10,10 +10,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import {
-  AITutorV1,
   type TutorMessage,
-  type TutorResponse,
-  type LearnerContext,
   type TutorLevel,
 } from "@/engines/ai-tutor/v1";
 import { isAIConfigured, chatWithAI } from "@/services/ai-settings";
@@ -22,7 +19,6 @@ interface ConversationPracticeProps {
   level: TutorLevel;
   topic: string;
   topicChinese: string;
-  context: LearnerContext;
   onComplete: (score: number) => void;
   onSkip?: () => void;
 }
@@ -31,27 +27,18 @@ export function ConversationPractice({
   level,
   topic,
   topicChinese,
-  context,
   onComplete,
   onSkip,
 }: ConversationPracticeProps) {
   const [messages, setMessages] = useState<TutorMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [showCorrections, setShowCorrections] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const tutor = new AITutorV1();
   const useAI = isAIConfigured();
 
   // Initialize session
   useEffect(() => {
-    if (!useAI) {
-      const session = tutor.startSession(level, topic, topicChinese);
-      setSessionId(session.id);
-    }
-
     // Add initial tutor message
     const initialMessage: TutorMessage = {
       id: "initial",
@@ -116,35 +103,27 @@ export function ConversationPractice({
     setIsLoading(true);
 
     try {
-      if (useAI) {
-        // Use real AI
-        const chatHistory = [
-          { role: "system", content: `You are an English teacher for Chinese beginners. Level: ${level}. Topic: ${topicChinese}. Teach in a friendly way. When the student makes a mistake, correct them gently in Chinese. Always encourage them. Reply in English with Chinese explanations where helpful.` },
-          ...messages.map(m => ({
-            role: m.role === "tutor" ? "assistant" : "user",
-            content: m.content,
-          })),
-          { role: "user", content: userMessage },
-        ];
-        const aiReply = await chatWithAI(chatHistory);
-        const aiMessage: TutorMessage = {
-          id: `ai_${Date.now()}`,
-          role: "tutor",
-          content: aiReply,
-          translationChinese: "",
-          timestamp: Date.now(),
-        };
-        setMessages(prev => [...prev, aiMessage]);
-      } else {
-        // Use local engine
-        if (!sessionId) return;
-        const response: TutorResponse = await tutor.chat(sessionId, userMessage, context);
-        setMessages(prev => [...prev, response.message]);
-        setShowCorrections(
-          response.message.corrections !== undefined &&
-            response.message.corrections.length > 0
-        );
-      }
+      // Both AI and local mode use chatWithAI (it auto-falls back to local mock)
+      const systemPrompt = useAI
+        ? `You are an English teacher for Chinese beginners. Level: ${level}. Topic: ${topicChinese}. Teach in a friendly way. When the student makes a mistake, correct them gently in Chinese. Always encourage them. Reply in English with Chinese explanations where helpful.`
+        : `You are a friendly English teacher. Level: ${level}. Topic: ${topicChinese}. Reply in English with Chinese explanations. Correct mistakes gently.`;
+      const chatHistory = [
+        { role: "system", content: systemPrompt },
+        ...messages.map(m => ({
+          role: m.role === "tutor" ? "assistant" : "user",
+          content: m.content,
+        })),
+        { role: "user", content: userMessage },
+      ];
+      const aiReply = await chatWithAI(chatHistory);
+      const aiMessage: TutorMessage = {
+        id: `ai_${Date.now()}`,
+        role: "tutor",
+        content: aiReply,
+        translationChinese: "",
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error("Chat error:", error);
       setMessages(prev => [...prev, {
@@ -158,7 +137,7 @@ export function ConversationPractice({
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputValue, sessionId, context, useAI, messages, level, topic, topicChinese]);
+  }, [inputValue, useAI, messages, level, topic, topicChinese]);
 
   /**
    * Handle key press
@@ -177,11 +156,8 @@ export function ConversationPractice({
    * Handle complete
    */
   const handleComplete = useCallback(() => {
-    const session = tutor.getSession(sessionId || "");
-    const score = session?.score.overall || 0;
-    onComplete(score);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, onComplete]);
+    onComplete(0);
+  }, [onComplete]);
 
   return (
     <div className="conversation-practice flex flex-col h-full">
@@ -217,8 +193,7 @@ export function ConversationPractice({
             </div>
 
             {/* Corrections */}
-            {showCorrections &&
-              message.corrections &&
+            {message.corrections &&
               message.corrections.length > 0 && (
                 <div className="corrections mt-2 text-left">
                   <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-sm">

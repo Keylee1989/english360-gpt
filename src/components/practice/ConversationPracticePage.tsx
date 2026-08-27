@@ -6,20 +6,8 @@
  */
 
 import { ConversationPractice } from "./ConversationPractice";
-import type { LearnerContext } from "@/engines/ai-tutor/v1";
 import { isAIConfigured } from "@/services/ai-settings";
 import { useNavigate } from "react-router-dom";
-
-// Default context for demonstration
-const defaultContext: LearnerContext = {
-  userId: "demo_user",
-  level: "A1",
-  vocabularyLevel: 30,
-  grammarLevel: 30,
-  weakAreas: ["speaking"],
-  strongAreas: [],
-  recentTopics: [],
-};
 
 export default function ConversationPracticePage() {
   const navigate = useNavigate();
@@ -58,7 +46,6 @@ export default function ConversationPracticePage() {
           level="A1"
           topic="daily-life"
           topicChinese="日常生活"
-          context={defaultContext}
           onComplete={handleComplete}
         />
       </div>

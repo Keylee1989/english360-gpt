@@ -118,6 +118,7 @@ export default function ReviewPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [incorrectItems, setIncorrectItems] = useState<ReviewItem[]>([]);
 
   // Load review items from today's curriculum
   useEffect(() => {
@@ -168,6 +169,13 @@ export default function ReviewPage() {
   }, [selectedAnswer, quizOptions]);
 
   const handleNextItem = useCallback(() => {
+    // Track incorrect items
+    if (!isCorrect) {
+      const currentItem = reviewItems[reviewState.currentIndex];
+      if (currentItem && !incorrectItems.some(i => i.id === currentItem.id)) {
+        setIncorrectItems(prev => [...prev, currentItem]);
+      }
+    }
     if (reviewState.currentIndex < reviewItems.length - 1) {
       setReviewState((prev) => ({
         ...prev,
@@ -183,11 +191,13 @@ export default function ReviewPage() {
         incorrectCount: prev.incorrectCount + (isCorrect ? 0 : 1),
       }));
     }
-  }, [reviewState.currentIndex, reviewItems.length, isCorrect]);
+  }, [reviewState.currentIndex, reviewItems.length, isCorrect, incorrectItems]);
 
   const handleRestart = useCallback(() => {
-    const shuffled = [...reviewItems].sort(() => Math.random() - 0.5);
+    // Restart with only the incorrect words
+    const shuffled = [...incorrectItems].sort(() => Math.random() - 0.5);
     setReviewItems(shuffled);
+    setIncorrectItems([]);
     setReviewState({
       currentIndex: 0,
       totalItems: shuffled.length,
@@ -195,7 +205,7 @@ export default function ReviewPage() {
       incorrectCount: 0,
       completed: false,
     });
-  }, [reviewItems]);
+  }, [incorrectItems]);
 
   // When review completes: report completion to home progress + update profile
   useEffect(() => {
@@ -282,7 +292,7 @@ export default function ReviewPage() {
             <div className="card mb-6 text-left">
               <h3 className="text-lg font-semibold mb-3">❌ 需要再复习的单词</h3>
               <div className="space-y-2">
-                {reviewItems.slice(0, reviewState.correctCount + reviewState.incorrectCount).map((item) => (
+                {incorrectItems.map((item) => (
                   <div key={item.id} className="flex items-center gap-3 p-2 rounded bg-red-50">
                     <span className="font-medium text-red-700">{item.word}</span>
                     <span className="text-gray-400">→</span>

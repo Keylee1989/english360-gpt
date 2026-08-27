@@ -215,20 +215,21 @@ export class DailyCoachEngineV2 {
       assessment: 5,
     };
 
-    // Adjust based on weak areas
-    if (profile.weakAreas.includes("listening")) {
+    // Adjust based on weak areas (safe for undefined)
+    const weak = profile.weakAreas || [];
+    if (weak.includes("listening")) {
       allocation.listening_input += 15;
       allocation.shadowing += 10;
     }
-    if (profile.weakAreas.includes("speaking")) {
+    if (weak.includes("speaking")) {
       allocation.conversation += 15;
       allocation.pronunciation += 10;
     }
-    if (profile.weakAreas.includes("vocabulary")) {
+    if (weak.includes("vocabulary")) {
       allocation.vocabulary_new += 10;
       allocation.srs_review += 10;
     }
-    if (profile.weakAreas.includes("grammar")) {
+    if (weak.includes("grammar")) {
       allocation.grammar += 10;
     }
 
@@ -476,12 +477,14 @@ export class DailyCoachEngineV2 {
   private determineFocusAreas(profile: LearnerProfile): string[] {
     const focusAreas: string[] = [];
 
-    // Add weak areas
-    focusAreas.push(...profile.weakAreas.slice(0, 3));
+    // Add weak areas (safe for undefined)
+    const weakAreas = profile.weakAreas || [];
+    const strongAreas = profile.strongAreas || [];
+    focusAreas.push(...weakAreas.slice(0, 3));
 
     // Add maintenance for strong areas
     if (focusAreas.length < 3) {
-      focusAreas.push(...profile.strongAreas.slice(0, 3 - focusAreas.length));
+      focusAreas.push(...strongAreas.slice(0, 3 - focusAreas.length));
     }
 
     // Add level-specific focus

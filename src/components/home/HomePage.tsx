@@ -193,7 +193,8 @@ export default function HomePage() {
 
   // Navigate to activity
   const handleActivityClick = (activityId: string, type: string) => {
-    if (completedActivities.includes(activityId)) {
+    const completed = completedActivities || [];
+    if (completed.includes(activityId)) {
       return; // Already completed
     }
     navigate(getActivityRoute(type));
