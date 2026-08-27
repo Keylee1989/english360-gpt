@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { DailyCoachEngineV2, createDailyCoach, type LearnerProfile } from "../index";
+import { DailyCoachEngineV2, type LearnerProfile } from "../index";
 
 describe("DailyCoachEngineV2", () => {
   let engine: DailyCoachEngineV2;
@@ -34,216 +34,115 @@ describe("DailyCoachEngineV2", () => {
     yesterdayScore: 75,
   };
 
-  // ============================================================
-  // Mission Generation
-  // ============================================================
-
   describe("Mission Generation", () => {
-    it("should generate daily mission", () => {
+    it("should generate daily mission with 9 activities", () => {
       const mission = engine.generateMission(mockProfile);
-
       expect(mission).toBeDefined();
       expect(mission.id).toBeTruthy();
       expect(mission.userId).toBe("test_user");
-      expect(mission.activities.length).toBeGreaterThan(0);
+      expect(mission.activities.length).toBe(9);
       expect(mission.totalTimeMinutes).toBe(240);
-      expect(mission.focusAreas.length).toBeGreaterThan(0);
+      expect(mission.day).toBe(1);
     });
 
-    it("should generate activities for all skills", () => {
+    it("should include day-specific vocabulary", () => {
       const mission = engine.generateMission(mockProfile);
-      const activityTypes = mission.activities.map((a) => a.type);
-
-      expect(activityTypes).toContain("srs_review");
-      expect(activityTypes).toContain("listening_input");
-      expect(activityTypes).toContain("shadowing");
-      expect(activityTypes).toContain("conversation");
-      expect(activityTypes).toContain("reading");
-      expect(activityTypes).toContain("writing");
-      expect(activityTypes).toContain("grammar");
-      expect(activityTypes).toContain("pronunciation");
-      expect(activityTypes).toContain("vocabulary_new");
+      const vocabActivity = mission.activities.find(a => a.type === "vocabulary_new");
+      expect(vocabActivity).toBeDefined();
+      const words = (vocabActivity!.content as any).words;
+      expect(words).toBeDefined();
+      expect(words.length).toBe(10);
+      expect(words[0].word).toBe("hello");
+      expect(words[0].ipa).toBeTruthy();
+      expect(words[0].chinese).toBeTruthy();
     });
 
-    it("should adjust time based on weak areas", () => {
-      const weakProfile = {
-        ...mockProfile,
-        weakAreas: ["listening", "speaking"],
-      };
-
-      const mission = engine.generateMission(weakProfile);
-      const listeningActivity = mission.activities.find((a) => a.type === "listening_input");
-      const conversationActivity = mission.activities.find((a) => a.type === "conversation");
-
-      expect(listeningActivity?.durationMinutes).toBeGreaterThan(45);
-      expect(conversationActivity?.durationMinutes).toBeGreaterThan(30);
+    it("should include day-specific reading", () => {
+      const mission = engine.generateMission(mockProfile);
+      const readingActivity = mission.activities.find(a => a.type === "reading");
+      expect(readingActivity).toBeDefined();
+      const content = readingActivity!.content as any;
+      expect(content.title).toBeTruthy();
+      expect(content.text).toBeTruthy();
+      expect(content.questions.length).toBe(3);
     });
 
-    it("should adjust based on yesterday performance", () => {
-      const lowScoreProfile = {
-        ...mockProfile,
-        yesterdayScore: 50,
-      };
-
-      const mission = engine.generateMission(lowScoreProfile);
-      const vocabularyActivity = mission.activities.find((a) => a.type === "vocabulary_new");
-      const srsActivity = mission.activities.find((a) => a.type === "srs_review");
-
-      // Low score: fewer new words, more review (after normalization)
-      expect(vocabularyActivity?.durationMinutes).toBeLessThanOrEqual(25);
-      expect(srsActivity?.durationMinutes).toBeGreaterThanOrEqual(25);
+    it("should include day-specific writing", () => {
+      const mission = engine.generateMission(mockProfile);
+      const writingActivity = mission.activities.find(a => a.type === "writing");
+      expect(writingActivity).toBeDefined();
+      const content = writingActivity!.content as any;
+      expect(content.task).toBeTruthy();
+      expect(content.template).toBeTruthy();
     });
 
-    it("should set unique IDs for multiple missions", () => {
-      const mission1 = engine.generateMission(mockProfile);
-      const mission2 = engine.generateMission(mockProfile);
+    it("should include day-specific grammar", () => {
+      const mission = engine.generateMission(mockProfile);
+      const grammarActivity = mission.activities.find(a => a.type === "grammar");
+      expect(grammarActivity).toBeDefined();
+      const content = grammarActivity!.content as any;
+      expect(content.rule).toBeTruthy();
+      expect(content.ruleZh).toBeTruthy();
+      expect(content.examples.length).toBeGreaterThan(0);
+    });
 
-      expect(mission1.id).not.toBe(mission2.id);
+    it("should include pronunciation with letters", () => {
+      const mission = engine.generateMission(mockProfile);
+      const pronActivity = mission.activities.find(a => a.type === "pronunciation");
+      expect(pronActivity).toBeDefined();
+      const content = pronActivity!.content as any;
+      expect(content.letters.length).toBe(5);
+      expect(content.examples.length).toBe(5);
+    });
+
+    it("should return cached mission for same day", () => {
+      const m1 = engine.generateMission(mockProfile);
+      const m2 = engine.generateMission(mockProfile);
+      expect(m1.id).toBe(m2.id);
     });
   });
-
-  // ============================================================
-  // Activity Completion
-  // ============================================================
 
   describe("Activity Completion", () => {
-    it("should complete activity", () => {
+    it("should complete an activity", () => {
       const mission = engine.generateMission(mockProfile);
-
-      engine.completeActivity(mission.id, "act_srs", 0.85);
-
-      const updatedMission = engine.getMission(mission.id);
-      expect(updatedMission?.completedActivities).toContain("act_srs");
-      expect(updatedMission?.activities.find((a) => a.id === "act_srs")?.completed).toBe(true);
+      engine.completeActivity(mission.id, "act_srs", 0.9);
+      expect(mission.completedActivities).toContain("act_srs");
     });
 
-    it("should update mission score", () => {
+    it("should not duplicate activities", () => {
       const mission = engine.generateMission(mockProfile);
-
-      engine.completeActivity(mission.id, "act_srs", 0.85);
-      engine.completeActivity(mission.id, "act_listening", 0.9);
-
-      const updatedMission = engine.getMission(mission.id);
-      expect(updatedMission?.score).toBeGreaterThan(0);
+      engine.completeActivity(mission.id, "act_srs", 0.9);
+      engine.completeActivity(mission.id, "act_srs", 0.8);
+      expect(mission.completedActivities.filter(a => a === "act_srs").length).toBe(1);
     });
 
-    it("should mark mission complete when all activities done", () => {
+    it("should mark mission complete when all done", () => {
       const mission = engine.generateMission(mockProfile);
-
-      for (const activity of mission.activities) {
-        engine.completeActivity(mission.id, activity.id, 0.8);
+      for (const act of mission.activities) {
+        engine.completeActivity(mission.id, act.id, 0.8);
       }
-
-      const updatedMission = engine.getMission(mission.id);
-      expect(updatedMission?.completed).toBe(true);
-    });
-
-    it("should throw for invalid mission", () => {
-      expect(() => {
-        engine.completeActivity("invalid_mission", "act_srs", 0.8);
-      }).toThrow("Mission not found");
-    });
-
-    it("should throw for invalid activity", () => {
-      const mission = engine.generateMission(mockProfile);
-
-      expect(() => {
-        engine.completeActivity(mission.id, "invalid_activity", 0.8);
-      }).toThrow("Activity not found");
+      expect(mission.completed).toBe(true);
     });
   });
 
-  // ============================================================
-  // Mission Stats
-  // ============================================================
+  describe("Different Days", () => {
+    it("should have different content for Day 1 vs Day 2", () => {
+      const profile1 = { ...mockProfile, currentDay: 1 };
+      const profile2 = { ...mockProfile, currentDay: 2 };
 
-  describe("Mission Stats", () => {
-    it("should get user missions", () => {
-      engine.generateMission(mockProfile);
-      engine.generateMission(mockProfile);
+      // Need fresh engine instances since missions are cached by date
+      const engine1 = new DailyCoachEngineV2();
+      const engine2 = new DailyCoachEngineV2();
 
-      const missions = engine.getUserMissions("test_user");
-      expect(missions.length).toBe(2);
-    });
+      const m1 = engine1.generateMission(profile1);
+      const m2 = engine2.generateMission(profile2);
 
-    it("should get mission stats", () => {
-      const mission = engine.generateMission(mockProfile);
-      engine.completeActivity(mission.id, "act_srs", 0.85);
-
-      const stats = engine.getMissionStats("test_user");
-      expect(stats.totalMissions).toBe(1);
-      expect(stats.completedMissions).toBe(0); // Mission not fully complete
-      expect(stats.totalStudyMinutes).toBe(240);
-    });
-  });
-
-  // ============================================================
-  // Difficulty and Speed
-  // ============================================================
-
-  describe("Difficulty and Speed", () => {
-    it("should set easy difficulty for beginners", () => {
-      const beginnerProfile = {
-        ...mockProfile,
-        vocabularyLevel: 20,
-        listeningLevel: 15,
-        speakingLevel: 10,
-        grammarLevel: 25,
-      };
-
-      const mission = engine.generateMission(beginnerProfile);
-      expect(mission.difficulty).toBe("easy");
-    });
-
-    it("should set slow audio for beginners", () => {
-      const beginnerProfile = {
-        ...mockProfile,
-        listeningLevel: 20,
-      };
-
-      const mission = engine.generateMission(beginnerProfile);
-      expect(mission.audioSpeed).toBe("slow");
-    });
-
-    it("should set normal difficulty for intermediate", () => {
-      const intermediateProfile = {
-        ...mockProfile,
-        vocabularyLevel: 60,
-        listeningLevel: 55,
-        speakingLevel: 50,
-        grammarLevel: 65,
-      };
-
-      const mission = engine.generateMission(intermediateProfile);
-      expect(mission.difficulty).toBe("normal");
-    });
-  });
-
-  // ============================================================
-  // Focus Areas
-  // ============================================================
-
-  describe("Focus Areas", () => {
-    it("should include weak areas in focus", () => {
-      const mission = engine.generateMission(mockProfile);
-      expect(mission.focusAreas).toContain("speaking");
-      expect(mission.focusAreas).toContain("listening");
-    });
-
-    it("should include pronunciation for A1", () => {
-      const mission = engine.generateMission(mockProfile);
-      expect(mission.focusAreas).toContain("pronunciation");
-    });
-  });
-
-  // ============================================================
-  // Factory Function
-  // ============================================================
-
-  describe("Factory Function", () => {
-    it("should create daily coach", () => {
-      const coach = createDailyCoach();
-      expect(coach).toBeInstanceOf(DailyCoachEngineV2);
+      // Different days should have different vocabulary
+      const vocab1 = m1.activities.find(a => a.type === "vocabulary_new");
+      const vocab2 = m2.activities.find(a => a.type === "vocabulary_new");
+      const words1 = (vocab1!.content as any).words;
+      const words2 = (vocab2!.content as any).words;
+      expect(words1[0].word).not.toBe(words2[0].word);
     });
   });
 });

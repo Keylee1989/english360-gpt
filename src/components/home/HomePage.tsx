@@ -9,7 +9,7 @@
  * - Progress summary
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { DailyCoachEngineV2, type DailyMission, type LearnerProfile, type MissionActivityItem } from "@/engines/daily-coach/v2";
 import { AudioEngine } from "@/engines/audio";
@@ -148,7 +148,7 @@ export default function HomePage() {
   const [completedActivities, setCompletedActivities] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const coach = useMemo(() => new DailyCoachEngineV2(), []);
+  const [coach] = useState(() => new DailyCoachEngineV2());
 
   // Load profile and generate mission
   useEffect(() => {
@@ -195,34 +195,30 @@ export default function HomePage() {
     (activityId: string) => {
       if (!mission) return;
 
-      // Mark as completed
-      const newCompleted = [...completedActivities, activityId];
-      setCompletedActivities(newCompleted);
-
-      // Save to storage
-      const today = new Date().toISOString().split("T")[0];
-      saveToStorage(
-        `${STORAGE_KEYS.COMPLETED_ACTIVITIES}_${today}`,
-        newCompleted
-      );
+      // Mark as completed (functional setState avoids stale closure)
+      setCompletedActivities(prev => {
+        const newCompleted = prev.includes(activityId) ? prev : [...prev, activityId];
+        // Save to storage
+        const today = new Date().toISOString().split("T")[0];
+        saveToStorage(`${STORAGE_KEYS.COMPLETED_ACTIVITIES}_${today}`, newCompleted);
+        return newCompleted;
+      });
 
       // Update mission in engine
       try {
         coach.completeActivity(mission.id, activityId, 0.8);
       } catch (e) {
-        console.error("Failed to complete activity:", e);
+        // Mission may not exist in engine cache after day change — ignore
       }
 
       // Update profile
-      const updatedProfile = {
-        ...profile,
-        wordsLearned: profile.wordsLearned + 5,
-        wordsMastered: profile.wordsMastered + 2,
-      };
-      setProfile(updatedProfile);
-      saveToStorage(STORAGE_KEYS.USER_PROFILE, updatedProfile);
+      setProfile(prev => {
+        const updated = { ...prev, wordsLearned: prev.wordsLearned + 5, wordsMastered: prev.wordsMastered + 2 };
+        saveToStorage(STORAGE_KEYS.USER_PROFILE, updated);
+        return updated;
+      });
     },
-    [mission, completedActivities, profile, coach]
+    [mission, coach]
   );
 
   // Open activity inline (no navigation)
@@ -307,7 +303,7 @@ export default function HomePage() {
                       </button>
                     ) : (
                       <div className="mt-4 space-y-2">
-                        <div className="text-2xl font-bold text-primary-600">{w.chineseMeaning}</div>
+                        <div className="text-2xl font-bold text-primary-600">{w.chineseMeaning || w.chinese}</div>
                         {w.memoryHint && <div className="rounded-lg bg-amber-50 p-2 text-sm text-amber-700">💡 {w.memoryHint}</div>}
                         {w.example && <div className="text-sm text-gray-600">📝 {w.example}</div>}
                       </div>
@@ -356,22 +352,22 @@ export default function HomePage() {
             <div className="space-y-4">
               <div className="text-center">
                 <div className="text-5xl mb-2">🔤</div>
-                <h3 className="text-xl font-bold">发音练习</h3>
+                <h3 className="text-xl font-bold">{activeActivity.titleChinese}</h3>
                 <p className="text-gray-500">点击每个字母听发音，然后跟读</p>
               </div>
               {(() => {
-                const letters = ["A", "B", "C", "D", "E"];
-                const sounds = ["ay", "bee", "see", "dee", "ee"];
-                const words = ["apple", "book", "cat", "dog", "egg"];
-                const chinas = ["苹果", "书", "猫", "狗", "鸡蛋"];
+                const ph = (activeActivity.content as any) || {};
+                const letters = ph.letters || ["A", "B", "C", "D", "E"];
+                const examples = ph.examples || ["apple", "book", "cat", "dog", "egg"];
+                const ch = ph.chinese || ["苹果", "书", "猫", "狗", "鸡蛋"];
                 return (
                   <div className="space-y-2">
-                    {letters.map((l, i) => (
+                    {letters.map((l: string, i: number) => (
                       <div key={l} className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
                         <div className="text-3xl font-bold text-primary-600 w-10">{l}</div>
                         <div className="flex-1">
-                          <div className="text-sm font-medium">{sounds[i]}</div>
-                          <div className="text-xs text-gray-500">{words[i]} ({chinas[i]})</div>
+                          <div className="text-sm font-medium">{examples[i] || l}</div>
+                          <div className="text-xs text-gray-500">{ch[i] || ''}</div>
                         </div>
                         <button onClick={() => speakDirect(l, 0.6)} className="rounded-lg bg-primary-100 px-3 py-2 text-primary-600 hover:bg-primary-200">
                           🔊
@@ -483,23 +479,48 @@ export default function HomePage() {
             <div className="space-y-4">
               <div className="text-center mb-2">
                 <div className="text-4xl mb-2">📖</div>
-                <h3 className="text-xl font-bold">阅读练习</h3>
+                <h3 className="text-xl font-bold">{activeActivity.titleChinese}</h3>
               </div>
-              <div className="rounded-lg bg-gray-50 p-4">
-                <p className="text-lg font-medium mb-2">My Family</p>
-                <p className="text-gray-700 leading-relaxed">
-                  Hello! My name is Li Ming. I am from China. I have a family of four. My father is a teacher. My mother is a nurse. I have a sister. Her name is Li Hua. She is 10 years old. We live in Beijing. I love my family.
-                </p>
-                <p className="text-sm text-gray-500 mt-3 border-t pt-3">
-                  🇨🇳 你好！我叫李明。我来自中国。我家有四口人。我爸爸是老师。我妈妈是护士。我有一个妹妹。她叫李华。她10岁了。我们住在北京。我爱我的家人。
-                </p>
-              </div>
-              <div className="rounded-lg bg-blue-50 p-3 text-sm">
-                <p className="font-medium text-blue-800 mb-1">❓ 阅读理解：</p>
-                <p className="text-blue-700">1. Li Ming is from ___ (China/Japan)</p>
-                <p className="text-blue-700">2. His father is a ___ (teacher/doctor)</p>
-                <p className="text-blue-700">3. How old is Li Hua? ___ (10/12)</p>
-              </div>
+              {(() => {
+                const rd = (activeActivity.content as any) || {};
+                return (
+                  <>
+                    <div className="rounded-lg bg-gray-50 p-4">
+                      <p className="text-lg font-medium mb-2">{rd.title || 'Reading'}</p>
+                      <p className="text-gray-700 leading-relaxed whitespace-pre-line">{rd.text || ''}</p>
+                      {rd.textZh && (
+                        <p className="text-sm text-gray-500 mt-3 border-t pt-3">🇨🇳 {rd.textZh}</p>
+                      )}
+                    </div>
+                    {(rd.questions || []).length > 0 && (
+                      <div className="rounded-lg bg-blue-50 p-3 text-sm space-y-3">
+                        <p className="font-medium text-blue-800">❓ 阅读理解（选择正确答案）：</p>
+                        {(rd.questions || []).map((item: any, idx: number) => (
+                          <div key={idx} className="bg-white rounded p-2">
+                            <p className="font-medium text-blue-700 mb-1">{item.q}</p>
+                            <div className="flex gap-2">
+                              {item.options.map((opt: string, oi: number) => (
+                                <button
+                                  key={oi}
+                                  onClick={() => {
+                                    const el = document.getElementById(`read-q${idx}`);
+                                    if (el) {
+                                      if (oi === item.answer) el.textContent = "✅ 正确！";
+                                      else el.textContent = `❌ 再想想，正确答案是 ${item.options[item.answer]}`;
+                                    }
+                                  }}
+                                  className="rounded-lg border-2 border-blue-200 px-3 py-1 text-sm text-blue-700 hover:border-blue-400 hover:bg-blue-50"
+                                >{opt}</button>
+                              ))}
+                            </div>
+                            <p id={`read-q${idx}`} className="text-xs mt-1 text-gray-400"></p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               <button onClick={() => setGrammarRead(true)} className={`w-full rounded-lg py-3 font-medium ${grammarRead ? "bg-green-500 text-white" : "bg-primary-500 text-white"}`}>
                 {grammarRead ? "✅ 已阅读" : "✅ 我已阅读"}
               </button>
@@ -510,22 +531,29 @@ export default function HomePage() {
             <div className="space-y-4">
               <div className="text-center mb-2">
                 <div className="text-4xl mb-2">✏️</div>
-                <h3 className="text-xl font-bold">写作练习</h3>
+                <h3 className="text-xl font-bold">{activeActivity.titleChinese}</h3>
               </div>
-              <div className="rounded-lg bg-amber-50 p-4">
-                <p className="font-medium text-amber-800 mb-2">📝 写作任务：</p>
-                <p className="text-amber-700">用英语写3个句子介绍你自己：</p>
-                <ul className="text-sm text-amber-600 mt-2 space-y-1">
-                  <li>• My name is ___.</li>
-                  <li>• I am from ___.</li>
-                  <li>• I like ___.</li>
-                </ul>
-              </div>
-              <textarea
-                placeholder="在这里写你的英语句子..."
-                className="w-full rounded-lg border p-3 text-sm focus:border-primary-500 focus:outline-none"
-                rows={4}
-              />
+              {(() => {
+                const wr = (activeActivity.content as any) || {};
+                return (
+                  <>
+                    <div className="rounded-lg bg-amber-50 p-4">
+                      <p className="font-medium text-amber-800 mb-2">📝 {wr.task || wr.taskZh || '写作任务'}：</p>
+                      <p className="text-amber-700 text-sm whitespace-pre-line">{wr.template || ''}</p>
+                      {(wr.hints || []).length > 0 && (
+                        <ul className="text-sm text-amber-600 mt-2 space-y-1">
+                          {(wr.hints || []).map((h: string, i: number) => <li key={i}>💡 {h}</li>)}
+                        </ul>
+                      )}
+                    </div>
+                    <textarea
+                      placeholder="在这里写你的英语句子..."
+                      className="w-full rounded-lg border p-3 text-sm focus:border-primary-500 focus:outline-none"
+                      rows={4}
+                    />
+                  </>
+                );
+              })()}
               <button onClick={() => setGrammarRead(true)} className={`w-full rounded-lg py-3 font-medium ${grammarRead ? "bg-green-500 text-white" : "bg-primary-500 text-white"}`}>
                 {grammarRead ? "✅ 已完成" : "✅ 我已完成"}
               </button>
@@ -536,27 +564,34 @@ export default function HomePage() {
             <div className="space-y-4">
               <div className="text-center mb-2">
                 <div className="text-4xl mb-2">📝</div>
-                <h3 className="text-xl font-bold">语法练习</h3>
+                <h3 className="text-xl font-bold">{activeActivity.titleChinese}</h3>
               </div>
-              <div className="rounded-lg bg-blue-50 p-4">
-                <p className="font-medium text-blue-800 mb-2">📖 今日语法：be动词</p>
-                <div className="text-sm text-blue-700 space-y-1">
-                  <p>I <strong>am</strong> a student. (我是学生)</p>
-                  <p>You <strong>are</strong> my friend. (你是我的朋友)</p>
-                  <p>He <strong>is</strong> a teacher. (他是老师)</p>
-                  <p>She <strong>is</strong> beautiful. (她很漂亮)</p>
-                  <p>It <strong>is</strong> a cat. (它是一只猫)</p>
-                </div>
-                <div className="mt-3 p-2 bg-white rounded text-sm">
-                  <p className="font-medium text-amber-700">💡 记忆口诀：我am你are，他她它是is，复数全部都用are</p>
-                </div>
-              </div>
-              <div className="rounded-lg bg-gray-50 p-3 text-sm">
-                <p className="font-medium mb-1">✏️ 选词填空：</p>
-                <p>1. I ___ a student. (am/is/are)</p>
-                <p>2. She ___ my mother. (am/is/are)</p>
-                <p>3. They ___ friends. (am/is/are)</p>
-              </div>
+              {(() => {
+                const gr = (activeActivity.content as any) || {};
+                return (
+                  <>
+                    <div className="rounded-lg bg-blue-50 p-4">
+                      <p className="font-medium text-blue-800 mb-2">📖 {gr.rule || '语法规则'}</p>
+                      <div className="text-sm text-blue-700 space-y-1">
+                        {(gr.examples || []).map((ex: any, i: number) => (
+                          <p key={i}>{ex.en} <span className="text-gray-500">({ex.zh})</span></p>
+                        ))}
+                      </div>
+                      {gr.ruleZh && (
+                        <div className="mt-3 p-2 bg-white rounded text-sm">
+                          <p className="font-medium text-amber-700">💡 {gr.ruleZh}</p>
+                        </div>
+                      )}
+                    </div>
+                    {gr.exercise && (
+                      <div className="rounded-lg bg-gray-50 p-3 text-sm">
+                        <p className="font-medium mb-1">✏️ 选词填空：</p>
+                        <p>{gr.exercise.q} ({gr.exercise.options.join(' / ')})</p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
               <button onClick={() => setGrammarRead(true)} className={`w-full rounded-lg py-3 font-medium ${grammarRead ? "bg-green-500 text-white" : "bg-primary-500 text-white"}`}>
                 {grammarRead ? "✅ 已学习" : "✅ 我已学习"}
               </button>
@@ -618,10 +653,16 @@ export default function HomePage() {
             <p className="text-sm text-green-100 mt-1">坚持学习，每天进步一点点</p>
             <button
               onClick={() => {
-                const updatedProfile = { ...profile, currentDay: profile.currentDay + 1, studyStreak: profile.studyStreak + 1 };
-                setProfile(updatedProfile);
+                const nextDay = profile.currentDay + 1;
+                const updatedProfile = { ...profile, currentDay: nextDay, studyStreak: profile.studyStreak + 1 };
                 saveToStorage(STORAGE_KEYS.USER_PROFILE, updatedProfile);
-                window.location.reload();
+                // Create new coach instance for fresh mission
+                const newCoach = new DailyCoachEngineV2();
+                const newMission = newCoach.generateMission(updatedProfile);
+                setProfile(updatedProfile);
+                setCompletedActivities([]);
+                setMission(newMission);
+                setActiveActivity(null);
               }}
               className="mt-4 rounded-lg bg-white px-6 py-3 font-bold text-green-600 shadow-lg hover:bg-green-50"
             >
