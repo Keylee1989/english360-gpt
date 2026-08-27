@@ -13,9 +13,6 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { VocabularyEngine } from "@/engines/vocabulary";
-import { SRSEngine } from "@/engines/srs";
-import { CurriculumEngine } from "@/engines/curriculum";
 import { VOCABULARY_STATS } from "@/engines/vocabulary/data/all-words";
 
 // ============================================================
@@ -86,41 +83,76 @@ export default function ProgressDashboard() {
 
   const loadStats = async () => {
     try {
-      const vocabEngine = new VocabularyEngine();
-      const srsEngine = new SRSEngine();
-      const curriculumEngine = new CurriculumEngine();
+      // Read from SAME localStorage keys as HomePage
+      const today = new Date().toISOString().split("T")[0];
+      const completedActivities: string[] = JSON.parse(
+        localStorage.getItem(`english360_completed_activities_${today}`) || "[]"
+      );
+      const userProfile: any = JSON.parse(
+        localStorage.getItem("english360_user_profile") || "{}"
+      );
 
-      const userId = "current_user";
+      // Get today's total tasks from DailyCoach (same as HomePage)
+      const { DailyCoachEngineV2 } = await import("@/engines/daily-coach/v2");
+      const coach = new DailyCoachEngineV2();
+      const profile = {
+        userId: "user_1",
+        currentDay: userProfile.currentDay || 1,
+        level: userProfile.level || "A1",
+        vocabularyLevel: userProfile.vocabularyLevel || 20,
+        listeningLevel: userProfile.listeningLevel || 15,
+        speakingLevel: userProfile.speakingLevel || 10,
+        grammarLevel: userProfile.grammarLevel || 20,
+        readingLevel: userProfile.readingLevel || 15,
+        writingLevel: userProfile.writingLevel || 10,
+        pronunciationLevel: userProfile.pronunciationLevel || 15,
+        weakAreas: userProfile.weakAreas || ["speaking", "listening"],
+        strongAreas: userProfile.strongAreas || [],
+        wordsLearned: userProfile.wordsLearned || 0,
+        wordsMastered: userProfile.wordsMastered || 0,
+        retentionRate: userProfile.retentionRate || 0.5,
+        studyStreak: userProfile.studyStreak || 0,
+        dailyGoalMinutes: userProfile.dailyGoalMinutes || 240,
+        yesterdayCompleted: userProfile.yesterdayCompleted || [],
+        yesterdayScore: userProfile.yesterdayScore || 0,
+      };
+      const mission = coach.generateMission(profile);
 
-      // Load vocabulary stats
-      const vocabStats = await vocabEngine.getUserStats(userId);
-      const srsStats = await srsEngine.getStats();
-      const curriculumProgress = await curriculumEngine.getUserProgress(userId);
-
-      // Calculate streak from localStorage (simplified)
+      // Calculate streak from completed days
       const streak = calculateStreak();
 
+      // Count completed days (days with all tasks done)
+      let completedDays = 0;
+      for (let d = 1; d <= 360; d++) {
+        const dDate = new Date();
+        dDate.setDate(dDate.getDate() - ((profile.currentDay || 1) - d));
+        const dStr = dDate.toISOString().split("T")[0];
+        const dCompleted: string[] = JSON.parse(
+          localStorage.getItem(`english360_completed_activities_${dStr}`) || "[]"
+        );
+        if (dCompleted.length >= 9) completedDays++;
+      }
+
       setStats({
-        totalWords: vocabStats.totalSeen || VOCABULARY_STATS.TOTAL, // Total available
-        masteredWords: vocabStats.mastered,
-        learningWords: vocabStats.learning,
-        newWords: vocabStats.new,
-        accuracy: vocabStats.accuracy,
+        totalWords: VOCABULARY_STATS.TOTAL,
+        masteredWords: profile.wordsMastered || 0,
+        learningWords: profile.wordsLearned || 0,
+        newWords: Math.max(0, VOCABULARY_STATS.TOTAL - (profile.wordsLearned || 0)),
+        accuracy: 0.75,
         streak,
-        todayTasks: 5,
-        completedTasks: 0,
-        learningTime: 0,
-        weakSkills: detectWeakSkills(vocabStats),
-        dueToday: srsStats.dueToday,
-        matureCards: srsStats.matureCards,
-        youngCards: srsStats.youngCards,
-        currentDay: curriculumProgress.currentDay,
-        completedDays: curriculumProgress.completedDays,
-        overallProgress: curriculumProgress.overallProgress,
+        todayTasks: mission.activities.length,
+        completedTasks: completedActivities.length,
+        learningTime: Math.round(completedActivities.length * 15),
+        weakSkills: profile.weakAreas || ["pronunciation", "listening"],
+        dueToday: 0,
+        matureCards: profile.wordsMastered || 0,
+        youngCards: profile.wordsLearned || 0,
+        currentDay: profile.currentDay || 1,
+        completedDays,
+        overallProgress: Math.round(((profile.currentDay || 1) / 360) * 100),
       });
     } catch (error) {
       console.error("Failed to load stats:", error);
-      // Use default stats
       setStats({
         totalWords: VOCABULARY_STATS.TOTAL,
         masteredWords: 0,
@@ -128,7 +160,7 @@ export default function ProgressDashboard() {
         newWords: VOCABULARY_STATS.TOTAL,
         accuracy: 0,
         streak: 0,
-        todayTasks: 5,
+        todayTasks: 9,
         completedTasks: 0,
         learningTime: 0,
         weakSkills: ["pronunciation", "listening"],
@@ -167,27 +199,6 @@ export default function ProgressDashboard() {
     } catch {
       return 0;
     }
-  };
-
-  const detectWeakSkills = (vocabStats: {
-    averageRecallSuccess: number;
-    averageProductionSuccess: number;
-    averageListeningSuccess: number;
-    averageSpeakingConfidence: number;
-  }): string[] => {
-    const weak: string[] = [];
-    
-    if (vocabStats.averageRecallSuccess < 0.7) weak.push("词汇回忆");
-    if (vocabStats.averageProductionSuccess < 0.7) weak.push("词汇输出");
-    if (vocabStats.averageListeningSuccess < 0.7) weak.push("听力理解");
-    if (vocabStats.averageSpeakingConfidence < 0.7) weak.push("口语表达");
-    
-    // If no specific weak skills detected, add defaults
-    if (weak.length === 0) {
-      weak.push("发音练习");
-    }
-    
-    return weak;
   };
 
   const formatTime = (minutes: number): string => {
