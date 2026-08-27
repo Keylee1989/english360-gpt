@@ -1450,11 +1450,14 @@ export const B2_MEMORY: Record<string, MemoryEntry> = {
 // 合并所有层级的记忆字典
 // ============================================================
 
+import { ALL_MEMORY_EXT } from "./memory-boost-2";
+
 export const ALL_MEMORY: Record<string, MemoryEntry> = {
   ...A1_MEMORY,
   ...A2_MEMORY,
   ...B1_MEMORY,
   ...B2_MEMORY,
+  ...ALL_MEMORY_EXT,
 };
 
 /**

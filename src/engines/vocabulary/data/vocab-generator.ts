@@ -798,23 +798,122 @@ function generateStory(word: string, zh: string): string {
 function generateAssociation(word: string, zh: string, morph: Morphology): string {
   const w = word.toLowerCase();
   const z = primaryZh(zh);
+
+  // 1. 词根词缀拆解（最高优先级）
   if (morph.root && morph.prefix) {
-    return `「${morph.prefix.form}-${morph.root.form}」= ${morph.prefix.meaning} + ${morph.root.meaning} → 整体就是"${z}"`;
+    return `🧩 拆词：「${morph.prefix.form}-${morph.root.form}」= ${morph.prefix.meaning} + ${morph.root.meaning} → 组合就是"${z}"`;
   }
   if (morph.root) {
-    return `核心词根 ${morph.root.form} 表示「${morph.root.meaning}」，所以整个词的意思是"${z}"`;
+    return `🧩 词根：${morph.root.form} =「${morph.root.meaning}」(${morph.root.origin}) → ${w} 的意思是"${z}"`;
   }
-  if (/^(un|dis|im|in|ir|il)/.test(w) && w.length > 4) {
-    return `前缀表示否定 → 与词干意思相反，即"${z}"`;
+
+  // 2. 常见前缀识别
+  const prefixPatterns: Array<[RegExp, string, string]> = [
+    [/^(un|in|im|ir|il|dis|mis|non)([a-z]{3,})$/, "否定前缀", "去掉前缀就是反义"],
+    [/^(re)([a-z]{3,})$/, "再次/返回", "做两次 = 重新/返回"],
+    [/^(pre)([a-z]{3,})$/, "在……之前", "提前做的事"],
+    [/^(over)([a-z]{3,})$/, "过度/在上", "做得太多了"],
+    [/^(under)([a-z]{3,})$/, "不足/在下", "做得不够或在下面"],
+    [/^(out)([a-z]{3,})$/, "超过/外面", "比别人多或在外面"],
+    [/^(trans)([a-z]{3,})$/, "横穿/转移", "从一边到另一边"],
+    [/^(inter)([a-z]{3,})$/, "在……之间", "两者中间"],
+    [/^(sub)([a-z]{3,})$/, "在下面/次级", "等级低一点"],
+    [/^(super)([a-z]{3,})$/, "超过/超级", "等级高一点"],
+    [/^(auto)([a-z]{3,})$/, "自动/自己", "自己动的"],
+    [/^(anti)([a-z]{3,})$/, "反对/抗", "站在对面"],
+    [/^(co|com|con)([a-z]{3,})$/, "共同/一起", "大家一起"],
+  ];
+  for (const [re, prefixZh, hint] of prefixPatterns) {
+    const m = w.match(re);
+    if (m && m[2].length >= 3) {
+      return `🧩 前缀 ${m[1]}- 表示「${prefixZh}」→ ${hint}，词根部分是 ${m[2]}`;
+    }
   }
+
+  // 3. 常见后缀识别
+  const suffixPatterns: Array<[RegExp, string]> = [
+    [/(tion|sion|ation)$/, "名词后缀 = 行为/结果/状态"],
+    [/(ment)$/, "名词后缀 = 行为/结果"],
+    [/(ness)$/, "名词后缀 = 性质/状态"],
+    [/(ity|ty)$/, "名词后缀 = 性质"],
+    [/(er|or|ar)$/, "名词后缀 = 做……的人"],
+    [/(ist)$/, "名词后缀 = 从事者"],
+    [/(ful)$/, "形容词后缀 = 充满……的"],
+    [/(less)$/, "形容词后缀 = 没有……的"],
+    [/(ous|ious|eous)$/, "形容词后缀 = 有……性质的"],
+    [/(able|ible)$/, "形容词后缀 = 可……的"],
+    [/(al|ial)$/, "形容词后缀 = ……的"],
+    [/(ive)$/, "形容词后缀 = 有……倾向的"],
+    [/(ly)$/, "副词后缀 = 以……方式"],
+    [/(ize|ise)$/, "动词后缀 = 使……化"],
+    [/(ify)$/, "动词后缀 = 使……"],
+    [/(en)$/, "动词后缀 = 使变得"],
+  ];
+  for (const [re, suffixZh] of suffixPatterns) {
+    const m = w.match(re);
+    if (m && w.length > m[0].length + 2) {
+      const stem = w.slice(0, -m[0].length);
+      return `🧩 后缀 -${m[0]} 表示「${suffixZh}」→ 词根 ${stem} + 后缀 = "${z}"`;
+    }
+  }
+
+  // 4. 双写辅音提示
   if (/(.)\1/.test(w)) {
     const dbl = w.match(/(.)\1/)![1];
-    return `${w} 中间有双写 ${dbl}${dbl}，像两只一样的${z}站在一起`;
+    return `📝 双写 ${dbl}${dbl} 提示前面的元音读短音，整体记"${z}"`;
   }
+
+  // 5. 元音组合提示
+  const vowelCombos: Array<[RegExp, string]> = [
+    [/(ea)/, "ea 组合多读 /iː/（长音「衣」），如 eat, read, sea"],
+    [/(oo)/, "oo 组合多读 /uː/（长音「乌」），如 food, cool, moon"],
+    [/(ai|ay)/, "ai/ay 组合读 /eɪ/（字母A的名音），如 rain, play"],
+    [/(ou)/, "ou 组合多读 /aʊ/（「傲」），如 house, out, about"],
+    [/(ow)/, "ow 组合读 /aʊ/（now）或 /əʊ/（know），需记"],
+    [/(igh)/, "igh 组合读 /aɪ/，gh 不发音，如 light, high"],
+  ];
+  for (const [re, note] of vowelCombos) {
+    if (re.test(w)) return `📝 发音提示：${note}`;
+  }
+
+  // 6. 形近词对比（和已知词对比）
+  const similarKnown: Array<[RegExp, string, string]> = [
+    [/^(.+)tion$/, "tion 结尾词很多是名词", "-tion 固定发 /ʃən/"],
+    [/^(.+)ness$/, "-ness 结尾都是名词", "把形容词变名词"],
+    [/^(.+)ful$/, "-ful 结尾都是形容词", "充满什么的"],
+    [/^(.+)less$/, "-less 结尾都是形容词", "没有什么的"],
+    [/^(.+)ment$/, "-ment 结尾都是名词", "行为的结果"],
+    [/^(.+)able$/, "-able 结尾都是形容词", "可以怎样的"],
+    [/^(.+)ous$/, "-ous 结尾都是形容词", "充满什么的"],
+    [/^(.+)ive$/, "-ive 结尾都是形容词", "倾向于什么的"],
+    [/^(.+)ly$/, "-ly 结尾多是副词", "以什么方式"],
+    [/^(.+)er$/, "-er 结尾多是名词", "做某事的人或物"],
+    [/^(.+)tion$/, "-tion 结尾多是名词", "某个行为或结果"],
+  ];
+  for (const [re, pattern, rule] of similarKnown) {
+    if (re.test(w)) return `📝 构词规律：${pattern} → ${rule}`;
+  }
+
+  // 7. 拼写特征联想
+  if (w.startsWith('kn') || w.startsWith('wr') || w.startsWith('gn')) {
+    const silent = w.slice(0, 1);
+    return `📝 词首 ${silent} 不发音！${w} 读 /${w.slice(1)}/，像"${z}"`;
+  }
+  if (w.endsWith('mb') || w.endsWith('mn')) {
+    return `📝 词尾的 ${w.slice(-1)} 不发音，如 climb, lamb`;
+  }
+
+  // 8. 短词直接读
   if (w.length <= 4) {
-    return `只有 ${w.length} 个字母的短词，大声读 3 遍 "${w}"，嘴里念着${z}`;
+    return `📝 短词多读：大声念 "${w}" 三遍 → "${z}" 就记住了`;
   }
-  return `闭眼想画面：一个巨大的"${z}"标签贴在 ${w} 上，越夸张越好记`;
+
+  // 9. 默认：音节拆分 + 场景绑定
+  const syls = w.match(/[aeiouy]+/g) || [w];
+  if (syls.length >= 2) {
+    return `📝 拆音节：${syls.join('-')} → 逐个音节拼读，整体意思"${z}"`;
+  }
+  return `📝 字母组合联想：把 "${w}" 的字母想象成"${z}"的画面，越夸张越好记`;
 }
 
 // ============================================================
