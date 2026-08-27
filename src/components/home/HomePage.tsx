@@ -104,6 +104,7 @@ export default function HomePage() {
   
   const [grammarRead, setGrammarRead] = useState(false);
   const [listeningPlayed, setListeningPlayed] = useState(false);
+  const [replayDay, setReplayDay] = useState(1);
   const [profile, setProfile] = useState<LearnerProfile>(DEFAULT_PROFILE);
   const [mission, setMission] = useState<DailyMission | null>(null);
   const [completedActivities, setCompletedActivities] = useState<string[]>([]);
@@ -549,6 +550,60 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Day Control */}
+      <div className="card mb-4">
+        <h2 className="mb-3 text-lg font-semibold">📅 日程控制</h2>
+        <div className="space-y-2">
+          {/* Reset today */}
+          <button
+            onClick={() => {
+              if (!confirm("确定要重置今日所有进度吗？已完成的任务将全部取消。")) return;
+              const today = new Date().toISOString().split("T")[0];
+              saveToStorage(`${STORAGE_KEYS.COMPLETED_ACTIVITIES}_${today}`, []);
+              setCompletedActivities([]);
+            }}
+            className="w-full rounded-lg bg-red-50 px-4 py-3 text-left text-red-700 transition-colors hover:bg-red-100"
+          >
+            <div className="font-medium">🔄 重置今日进度</div>
+            <div className="text-xs text-red-500">清除今天所有已完成的任务，从头开始</div>
+          </button>
+
+          {/* Replay a specific day */}
+          <div className="rounded-lg bg-gray-50 p-3">
+            <div className="text-sm font-medium text-gray-700 mb-2">重学某一天</div>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min="1"
+                max="360"
+                value={replayDay}
+                onChange={(e) => setReplayDay(parseInt(e.target.value) || 1)}
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                placeholder="输入天数"
+              />
+              <button
+                onClick={() => {
+                  // Clear that day's completed activities
+                  const dayDate = new Date();
+                  dayDate.setDate(dayDate.getDate() - (profile.currentDay - replayDay));
+                  const dayStr = dayDate.toISOString().split("T")[0];
+                  saveToStorage(`${STORAGE_KEYS.COMPLETED_ACTIVITIES}_${dayStr}`, []);
+                  // Also update current day
+                  const updatedProfile = { ...profile, currentDay: replayDay };
+                  setProfile(updatedProfile);
+                  saveToStorage(STORAGE_KEYS.USER_PROFILE, updatedProfile);
+                  // Reload mission for that day
+                  window.location.reload();
+                }}
+                className="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
+              >
+                重学
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Quick Actions */}
       <div className="space-y-2 mb-4">
