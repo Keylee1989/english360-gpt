@@ -11,7 +11,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { DailyCoachEngineV2, type DailyMission, type LearnerProfile } from "@/engines/daily-coach/v2";
+import { DailyCoachEngineV2, type DailyMission, type LearnerProfile, type MissionActivityItem } from "@/engines/daily-coach/v2";
+import { AudioEngine } from "@/engines/audio";
 
 // ============================================================
 // Storage Keys
@@ -87,21 +88,7 @@ function getActivityIcon(type: string): string {
   return icons[type] || "📝";
 }
 
-function getActivityRoute(type: string): string {
-  const routes: Record<string, string> = {
-    srs_review: "/review",
-    listening_input: "/lesson",
-    shadowing: "/practice/shadowing",
-    conversation: "/practice/conversation",
-    reading: "/lesson",
-    writing: "/lesson",
-    grammar: "/lesson",
-    pronunciation: "/practice/pronunciation",
-    vocabulary_new: "/lesson",
-    assessment: "/lesson",
-  };
-  return routes[type] || "/lesson";
-}
+
 
 // ============================================================
 // HomePage Component
@@ -109,6 +96,14 @@ function getActivityRoute(type: string): string {
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const [activeActivity, setActiveActivity] = useState<MissionActivityItem | null>(null);
+  const [audioEngine] = useState(() => new AudioEngine());
+  // Activity-specific state
+  const [vocabIndex, setVocabIndex] = useState(0);
+  const [vocabShowMeaning, setVocabShowMeaning] = useState(false);
+  
+  const [grammarRead, setGrammarRead] = useState(false);
+  const [listeningPlayed, setListeningPlayed] = useState(false);
   const [profile, setProfile] = useState<LearnerProfile>(DEFAULT_PROFILE);
   const [mission, setMission] = useState<DailyMission | null>(null);
   const [completedActivities, setCompletedActivities] = useState<string[]>([]);
@@ -191,14 +186,24 @@ export default function HomePage() {
     [mission, completedActivities, profile, coach]
   );
 
-  // Navigate to activity
-  const handleActivityClick = (activityId: string, type: string) => {
+  // Open activity inline (no navigation)
+  const handleActivityClick = (activity: MissionActivityItem) => {
     const completed = completedActivities || [];
-    if (completed.includes(activityId)) {
-      return; // Already completed
-    }
-    navigate(getActivityRoute(type));
+    if (completed.includes(activity.id)) return;
+    setActiveActivity(activity);
+    setVocabIndex(0);
+    setVocabShowMeaning(false);
+    
+    setGrammarRead(false);
+    setListeningPlayed(false);
   };
+
+  // Complete activity and return to task list
+  const handleActivityDone = useCallback(() => {
+    if (!activeActivity) return;
+    handleActivityComplete(activeActivity.id);
+    setActiveActivity(null);
+  }, [activeActivity, handleActivityComplete]);
 
   if (loading) {
     return (
@@ -214,6 +219,215 @@ export default function HomePage() {
   const totalCount = mission?.activities.length || 0;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
+  // ============================================================
+  // Inline Activity View (when a task is active)
+  // ============================================================
+  if (activeActivity) {
+    return (
+      <div className="page-container">
+        {/* Back button */}
+        <button
+          onClick={() => setActiveActivity(null)}
+          className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+        >
+          ← 返回任务列表
+        </button>
+
+        {/* Activity header */}
+        <div className="card mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{getActivityIcon(activeActivity.type)}</span>
+            <div>
+              <h2 className="font-bold text-lg">{activeActivity.titleChinese}</h2>
+              <p className="text-sm text-gray-500">{activeActivity.descriptionChinese}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Activity content by type */}
+        <div className="card mb-4">
+          {activeActivity.type === "vocabulary_new" && (
+            <div className="space-y-4">
+              <div className="text-center text-sm text-gray-500">
+                单词 {(activeActivity.content as any)?.words?.length ? vocabIndex + 1 : 1} / {(activeActivity.content as any)?.words?.length || 5}
+              </div>
+              {(() => {
+                const words = (activeActivity.content as any)?.words || [];
+                const w = words[vocabIndex];
+                if (!w) return <p className="text-gray-500">没有词汇数据，请点击完成</p>;
+                return (
+                  <div className="rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 p-6 text-center">
+                    <div className="text-4xl font-bold text-primary-700 mb-2">{w.word}</div>
+                    <div className="text-lg text-primary-500 mb-1">{w.ipa}</div>
+                    {!vocabShowMeaning ? (
+                      <button
+                        onClick={() => setVocabShowMeaning(true)}
+                        className="mt-4 rounded-lg border-2 border-primary-500 px-6 py-2 text-primary-600 font-medium"
+                      >
+                        显示中文意思
+                      </button>
+                    ) : (
+                      <div className="mt-4 space-y-2">
+                        <div className="text-2xl font-bold text-primary-600">{w.chineseMeaning}</div>
+                        {w.memoryHint && <div className="rounded-lg bg-amber-50 p-2 text-sm text-amber-700">💡 {w.memoryHint}</div>}
+                        {w.example && <div className="text-sm text-gray-600">📝 {w.example}</div>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              <button
+                onClick={() => audioEngine.playWord(((activeActivity.content as any)?.words || [])[vocabIndex]?.word || "hello")}
+                className="w-full rounded-lg bg-gray-100 py-3 text-gray-700 font-medium"
+              >
+                🔊 播放发音
+              </button>
+              {vocabShowMeaning && (
+                <button
+                  onClick={() => {
+                    const words = (activeActivity.content as any)?.words || [];
+                    if (vocabIndex < words.length - 1) {
+                      setVocabIndex((i) => i + 1);
+                      setVocabShowMeaning(false);
+                    }
+                  }}
+                  className="w-full rounded-lg bg-green-500 py-3 text-white font-medium"
+                >
+                  {vocabIndex < ((activeActivity.content as any)?.words?.length || 1) - 1 ? "下一个单词 ✅" : "✅ 已学完全部单词"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {activeActivity.type === "srs_review" && (
+            <div className="space-y-4 text-center">
+              <div className="text-5xl">🔄</div>
+              <h3 className="text-xl font-bold">SRS 复习</h3>
+              <p className="text-gray-500">复习之前学过的单词，防止遗忘</p>
+              <button
+                onClick={() => navigate("/review")}
+                className="w-full rounded-lg bg-primary-500 py-3 text-white font-medium"
+              >
+                开始复习测试 →
+              </button>
+            </div>
+          )}
+
+          {activeActivity.type === "pronunciation" && (
+            <div className="space-y-4 text-center">
+              <div className="text-5xl">🔤</div>
+              <h3 className="text-xl font-bold">发音练习</h3>
+              <p className="text-gray-500">练习今天学过的单词发音</p>
+              <button
+                onClick={() => {
+                  const words = (activeActivity.content as any)?.words || ["hello", "goodbye", "thank"];
+                  words.forEach((w: string, i: number) => {
+                    setTimeout(() => audioEngine.playWord(w), i * 1500);
+                  });
+                  setListeningPlayed(true);
+                }}
+                className={`w-full rounded-lg py-3 text-white font-medium ${listeningPlayed ? "bg-green-500" : "bg-primary-500"}`}
+              >
+                {listeningPlayed ? "✅ 已播放" : "🔊 播放示范发音"}
+              </button>
+              <p className="text-xs text-gray-400">点击播放后听清楚发音，然后尝试跟读</p>
+            </div>
+          )}
+
+          {activeActivity.type === "listening_input" && (
+            <div className="space-y-4 text-center">
+              <div className="text-5xl">👂</div>
+              <h3 className="text-xl font-bold">听力练习</h3>
+              <p className="text-gray-500">仔细听，理解内容</p>
+              <button
+                onClick={() => {
+                  audioEngine.playSentence("Hello, how are you today? I am fine, thank you.");
+                  setListeningPlayed(true);
+                }}
+                className={`w-full rounded-lg py-4 text-lg text-white font-medium ${listeningPlayed ? "bg-green-500" : "bg-primary-500"}`}
+              >
+                {listeningPlayed ? "✅ 已播放" : "🔊 播放音频"}
+              </button>
+            </div>
+          )}
+
+          {activeActivity.type === "shadowing" && (
+            <div className="space-y-4 text-center">
+              <div className="text-5xl">🗣️</div>
+              <h3 className="text-xl font-bold">跟读练习</h3>
+              <p className="text-gray-500">听一句，跟读一句</p>
+              <button
+                onClick={() => {
+                  audioEngine.playSentence("Nice to meet you.");
+                  setListeningPlayed(true);
+                }}
+                className="w-full rounded-lg bg-primary-500 py-4 text-lg text-white font-medium"
+              >
+                🔊 播放句子
+              </button>
+              <button
+                onClick={() => {
+                  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                  if (!SpeechRecognition) { alert("浏览器不支持语音识别"); return; }
+                  const r = new SpeechRecognition();
+                  r.lang = "en-US"; r.interimResults = false;
+                  r.onresult = () => setListeningPlayed(true);
+                  r.start();
+                }}
+                className="w-full rounded-lg bg-green-500 py-4 text-lg text-white font-medium"
+              >
+                🎤 开始跟读
+              </button>
+            </div>
+          )}
+
+          {activeActivity.type === "conversation" && (
+            <div className="space-y-4 text-center">
+              <div className="text-5xl">💬</div>
+              <h3 className="text-xl font-bold">对话练习</h3>
+              <p className="text-gray-500">和AI老师进行简单对话</p>
+              <button
+                onClick={() => navigate("/practice/conversation")}
+                className="w-full rounded-lg bg-primary-500 py-3 text-white font-medium"
+              >
+                开始对话 →
+              </button>
+            </div>
+          )}
+
+          {(activeActivity.type === "reading" || activeActivity.type === "writing" || activeActivity.type === "grammar") && (
+            <div className="space-y-4 text-center">
+              <div className="text-5xl">{activeActivity.type === "grammar" ? "📝" : activeActivity.type === "reading" ? "📖" : "✏️"}</div>
+              <h3 className="text-xl font-bold">{activeActivity.titleChinese}</h3>
+              <p className="text-gray-500">{activeActivity.descriptionChinese}</p>
+              {!grammarRead && (
+                <button
+                  onClick={() => setGrammarRead(true)}
+                  className="w-full rounded-lg bg-primary-500 py-3 text-white font-medium"
+                >
+                  ✅ 我已完成
+                </button>
+              )}
+              {grammarRead && <div className="text-green-600 font-medium">✅ 已确认完成</div>}
+            </div>
+          )}
+
+        </div>
+
+        {/* Complete button */}
+        <button
+          onClick={handleActivityDone}
+          className="w-full rounded-xl bg-green-500 px-6 py-4 text-lg font-bold text-white shadow-md hover:bg-green-600"
+        >
+          ✅ 完成此任务
+        </button>
+      </div>
+    );
+  }
+
+  // ============================================================
+  // Main Task List View
+  // ============================================================
   return (
     <div className="page-container">
       {/* Header */}
@@ -281,7 +495,7 @@ export default function HomePage() {
                       ? "bg-green-50 opacity-70"
                       : "bg-gray-50 hover:bg-gray-100 cursor-pointer"
                   }`}
-                  onClick={() => handleActivityClick(activity.id, activity.type)}
+                  onClick={() => handleActivityClick(activity)}
                 >
                   <div className="text-2xl">{getActivityIcon(activity.type)}</div>
                   <div className="flex-1">
@@ -346,7 +560,10 @@ export default function HomePage() {
           <div className="text-xs text-indigo-100">查看学习地图 · 做测试解锁下一级</div>
         </button>
         <button
-          onClick={() => navigate("/learn")}
+          onClick={() => {
+            const first = mission?.activities.find(a => !completedActivities.includes(a.id));
+            if (first) handleActivityClick(first);
+          }}
           className="w-full rounded-lg bg-primary-500 px-4 py-3 text-left text-white transition-colors hover:bg-primary-600"
         >
           <div className="font-medium">开始今日学习</div>
