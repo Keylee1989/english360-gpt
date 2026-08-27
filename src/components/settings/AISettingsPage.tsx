@@ -31,6 +31,7 @@ export default function AISettingsPage() {
   const [testing, setTesting] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string>("");
   const [customUrl, setCustomUrl] = useState("");
+  const [manualModel, setManualModel] = useState("");
 
   // Load saved settings
   useEffect(() => {
@@ -245,6 +246,60 @@ export default function AISettingsPage() {
           >
             {fetching ? "⏳ 正在获取模型列表..." : "🔍 获取可用模型"}
           </button>
+
+          {/* Manual model input */}
+          <div className="mt-3 flex gap-2">
+            <input
+              type="text"
+              placeholder="手动输入模型名称，如 gpt-4o-mini"
+              value={manualModel}
+              onChange={(e) => setManualModel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && manualModel.trim()) {
+                  e.preventDefault();
+                  const modelId = manualModel.trim();
+                  const exists = settings.availableModels.some(m => m.id === modelId);
+                  if (!exists) {
+                    setSettings(s => ({
+                      ...s,
+                      availableModels: [...s.availableModels, { id: modelId, name: modelId }],
+                      model: modelId,
+                      enabled: true,
+                    }));
+                  } else {
+                    setSettings(s => ({ ...s, model: modelId }));
+                  }
+                  setManualModel("");
+                }
+              }}
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200"
+            />
+            <button
+              onClick={() => {
+                if (!manualModel.trim()) return;
+                const modelId = manualModel.trim();
+                const exists = settings.availableModels.some(m => m.id === modelId);
+                if (!exists) {
+                  setSettings(s => ({
+                    ...s,
+                    availableModels: [...s.availableModels, { id: modelId, name: modelId }],
+                    model: modelId,
+                    enabled: true,
+                  }));
+                } else {
+                  setSettings(s => ({ ...s, model: modelId }));
+                }
+                setManualModel("");
+              }}
+              disabled={!manualModel.trim()}
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              ➕ 添加
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-gray-400">
+            如果 API 获取不到模型列表，可以手动输入模型名称后点击添加
+          </p>
 
           {fetchError && (
             <div className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
