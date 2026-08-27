@@ -3,6 +3,7 @@ import { markActivityComplete, updateProfileAfterActivity } from "@/services/act
 import { useNavigate } from "react-router-dom";
 import { DEDUPLICATED_VOCABULARY } from "../../engines/vocabulary/data/all-words";
 import { ALL_GRAMMAR_RULES } from "../../engines/grammar/data/grammar-kb";
+import { isAIConfigured, chatWithAI } from "../../services/ai-settings";
 
 // ============================================================
 // Quiz Types
@@ -210,10 +211,17 @@ export default function RNGQuizPage() {
   const [answered, setAnswered] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [quizComplete, setQuizComplete] = useState(false);
-
+  const [aiMode, setAiMode] = useState(false);
+  const [aiHint, setAiHint] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   const words = useMemo(() => DEDUPLICATED_VOCABULARY, []);
   const grammarRules = useMemo(() => ALL_GRAMMAR_RULES, []);
+
+  // Check if AI is configured on mount
+  useEffect(() => {
+    setAiMode(isAIConfigured());
+  }, []);
 
   const question = useMemo((): QuizQuestion => {
     const generators = [
@@ -224,12 +232,40 @@ export default function RNGQuizPage() {
     return gen(words.length > 50 ? words : grammarRules);
   }, [words, grammarRules, currentIndex]);
 
+  // Fetch AI explanation after answering
+  const fetchAIHint = useCallback(async (q: QuizQuestion, userAnswer: number) => {
+    const isCorrect = userAnswer === q.correct;
+    const correctAnswer = q.options[q.correct];
+    const userChose = q.options[userAnswer];
+    const prompt = `You are an English teacher. A student answered a ${q.type} question.
+Question: ${q.question}
+Student chose: ${userChose}
+Correct answer: ${correctAnswer}
+${isCorrect ? "They got it RIGHT." : "They got it WRONG."}
+
+Give a brief, helpful Chinese+English explanation (2-3 sentences max). Include a memory tip if relevant.`;
+    try {
+      const reply = await chatWithAI([
+        { role: "system", content: "You are a friendly English teacher for Chinese learners. Reply concisely in Chinese with English examples." },
+        { role: "user", content: prompt },
+      ]);
+      setAiHint(reply);
+    } catch {
+      setAiHint("");
+    }
+  }, []);
+
   const handleAnswer = useCallback((idx: number) => {
     if (answered !== null) return;
     setAnswered(idx);
     if (idx === question.correct) setScore(s => s + question.points);
     setShowExplanation(true);
-  }, [answered, question]);
+    if (aiMode) {
+      setAiLoading(true);
+      setAiHint("");
+      fetchAIHint(question, idx).finally(() => setAiLoading(false));
+    }
+  }, [answered, question, aiMode, fetchAIHint]);
 
   const handleNext = useCallback(() => {
     if (currentIndex + 1 >= totalQuestions) {
@@ -340,9 +376,26 @@ export default function RNGQuizPage() {
           />
         </div>
 
+        {/* AI Mode Toggle */}
+        {isAIConfigured() && (
+          <div className="mb-4 flex items-center justify-center gap-3">
+            <span className={`text-sm ${!aiMode ? "font-bold text-primary-600" : "text-gray-500"}`}>📋 本地</span>
+            <button
+              onClick={() => setAiMode(!aiMode)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${aiMode ? "bg-indigo-500" : "bg-gray-300"}`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${aiMode ? "translate-x-5" : "translate-x-0.5"}`}
+              />
+            </button>
+            <span className={`text-sm ${aiMode ? "font-bold text-indigo-600" : "text-gray-500"}`}>🤖 AI</span>
+          </div>
+        )}
+
         {/* Score */}
         <div className="mb-4 text-center text-sm text-gray-500">
           当前得分: <span className="font-bold text-primary-600">{score}</span> 分
+          {aiMode && <span className="ml-2 text-xs text-indigo-500">· AI 解析已开启</span>}
         </div>
 
         {/* Question Type */}
@@ -400,6 +453,21 @@ export default function RNGQuizPage() {
             </div>
             <p className="mb-2 text-sm text-gray-700">{question.explanation}</p>
             <p className="text-sm text-gray-500">{question.explanationZh}</p>
+            {/* AI hint */}
+            {aiMode && (
+              <div className="mt-3 rounded-lg bg-indigo-50 p-3">
+                {aiLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-indigo-600">
+                    <span className="animate-spin">⏳</span> AI 正在分析...
+                  </div>
+                ) : aiHint ? (
+                  <div className="text-sm text-indigo-800 whitespace-pre-wrap">
+                    <div className="mb-1 font-semibold text-indigo-700">🤖 AI 解析</div>
+                    {aiHint}
+                  </div>
+                ) : null}
+              </div>
+            )}
           </div>
         )}
 

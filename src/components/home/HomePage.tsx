@@ -386,7 +386,14 @@ export default function HomePage() {
           className="w-full rounded-lg bg-gray-100 px-4 py-3 text-left text-gray-700 transition-colors hover:bg-gray-200"
         >
           <div className="font-medium">📖 词典与语法</div>
-          <div className="text-xs text-gray-500">搜索20,000+词汇和175+语法规则</div>
+          <div className="text-xs text-gray-500">搜索20,000+词汇和544+语法规则</div>
+        </button>
+        <button
+          onClick={() => navigate("/ai-settings")}
+          className="w-full rounded-lg bg-gray-100 px-4 py-3 text-left text-gray-700 transition-colors hover:bg-gray-200"
+        >
+          <div className="font-medium">🤖 AI 设置</div>
+          <div className="text-xs text-gray-500">配置AI模型让问答和对话更智能</div>
         </button>
       </div>
 

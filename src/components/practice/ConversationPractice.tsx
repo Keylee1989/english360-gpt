@@ -16,6 +16,7 @@ import {
   type LearnerContext,
   type TutorLevel,
 } from "@/engines/ai-tutor/v1";
+import { isAIConfigured, chatWithAI } from "@/services/ai-settings";
 
 interface ConversationPracticeProps {
   level: TutorLevel;
@@ -42,23 +43,30 @@ export function ConversationPractice({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const tutor = new AITutorV1();
+  const useAI = isAIConfigured();
 
   // Initialize session
   useEffect(() => {
-    const session = tutor.startSession(level, topic, topicChinese);
-    setSessionId(session.id);
+    if (!useAI) {
+      const session = tutor.startSession(level, topic, topicChinese);
+      setSessionId(session.id);
+    }
 
     // Add initial tutor message
     const initialMessage: TutorMessage = {
       id: "initial",
       role: "tutor",
-      content: `Hello! Let's practice ${topic}. ${getInitialPrompt(level)}`,
+      content: useAI
+        ? `Hi! I'm your AI English teacher. Let's practice ${topic} in ${level} level. ${getInitialPrompt(level)}
+
+中文: 你好！我是你的AI英语老师。让我们练习${topic}。${getInitialPromptChinese(level)}`
+        : `Hello! Let's practice ${topic}. ${getInitialPrompt(level)}`,
       translationChinese: `你好！让我们练习${topic}。${getInitialPromptChinese(level)}`,
       timestamp: Date.now(),
     };
     setMessages([initialMessage]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [level, topic, topicChinese]);
+  }, [level, topic, topicChinese, useAI]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -101,27 +109,56 @@ export function ConversationPractice({
    * Handle send message
    */
   const handleSendMessage = useCallback(async () => {
-    if (!inputValue.trim() || !sessionId) return;
+    if (!inputValue.trim()) return;
 
     const userMessage = inputValue.trim();
     setInputValue("");
     setIsLoading(true);
 
     try {
-      const response: TutorResponse = await tutor.chat(sessionId, userMessage, context);
-
-      setMessages(prev => [...prev, response.message]);
-      setShowCorrections(
-        response.message.corrections !== undefined &&
-          response.message.corrections.length > 0
-      );
+      if (useAI) {
+        // Use real AI
+        const chatHistory = [
+          { role: "system", content: `You are an English teacher for Chinese beginners. Level: ${level}. Topic: ${topicChinese}. Teach in a friendly way. When the student makes a mistake, correct them gently in Chinese. Always encourage them. Reply in English with Chinese explanations where helpful.` },
+          ...messages.map(m => ({
+            role: m.role === "tutor" ? "assistant" : "user",
+            content: m.content,
+          })),
+          { role: "user", content: userMessage },
+        ];
+        const aiReply = await chatWithAI(chatHistory);
+        const aiMessage: TutorMessage = {
+          id: `ai_${Date.now()}`,
+          role: "tutor",
+          content: aiReply,
+          translationChinese: "",
+          timestamp: Date.now(),
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        // Use local engine
+        if (!sessionId) return;
+        const response: TutorResponse = await tutor.chat(sessionId, userMessage, context);
+        setMessages(prev => [...prev, response.message]);
+        setShowCorrections(
+          response.message.corrections !== undefined &&
+            response.message.corrections.length > 0
+        );
+      }
     } catch (error) {
       console.error("Chat error:", error);
+      setMessages(prev => [...prev, {
+        id: `err_${Date.now()}`,
+        role: "tutor",
+        content: "Sorry, something went wrong. Let's try again! (抱歉，出错了，请重试)",
+        translationChinese: "",
+        timestamp: Date.now(),
+      }]);
     } finally {
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputValue, sessionId, context]);
+  }, [inputValue, sessionId, context, useAI, messages, level, topic, topicChinese]);
 
   /**
    * Handle key press

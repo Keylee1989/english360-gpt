@@ -16,6 +16,7 @@ import LearningResourcesPage from "./components/resources/LearningResourcesPage"
 import LevelTestPage from "./components/assessment/LevelTestPage";
 import LevelPathPage from "./components/path/LevelPathPage";
 import RNGQuizPage from "./components/assessment/RNGQuizPage";
+import AISettingsPage from "./components/settings/AISettingsPage";
 import NotFoundPage from "./components/common/NotFoundPage";
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
         <Route path="level-test" element={<LevelTestPage />} />
         <Route path="path" element={<LevelPathPage />} />
         <Route path="quiz" element={<RNGQuizPage />} />
+        <Route path="ai-settings" element={<AISettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
