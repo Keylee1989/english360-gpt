@@ -17,6 +17,7 @@ import LevelTestPage from "./components/assessment/LevelTestPage";
 import LevelPathPage from "./components/path/LevelPathPage";
 import RNGQuizPage from "./components/assessment/RNGQuizPage";
 import AISettingsPage from "./components/settings/AISettingsPage";
+import PhonicsPage from "./components/phonics/PhonicsPage";
 import NotFoundPage from "./components/common/NotFoundPage";
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
         <Route path="level-test" element={<LevelTestPage />} />
         <Route path="path" element={<LevelPathPage />} />
         <Route path="quiz" element={<RNGQuizPage />} />
+        <Route path="phonics" element={<PhonicsPage />} />
         <Route path="ai-settings" element={<AISettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

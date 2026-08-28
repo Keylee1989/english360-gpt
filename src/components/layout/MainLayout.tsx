@@ -7,10 +7,10 @@ export default function MainLayout() {
   const navItems = [
     { path: "/", label: "首页", icon: "🏠" },
     { path: "/learn", label: "学习", icon: "📖" },
+    { path: "/phonics", label: "拼读", icon: "🔤" },
     { path: "/review", label: "复习", icon: "🔄" },
     { path: "/resources", label: "资源", icon: "📚" },
     { path: "/progress", label: "进度", icon: "📊" },
-    { path: "/onboarding", label: "设置", icon: "⚙️" },
   ];
 
   const isActive = (path: string) => {

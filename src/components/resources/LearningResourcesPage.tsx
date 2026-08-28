@@ -17,17 +17,21 @@ interface Resource {
   title: string;
   titleChinese: string;
   url: string;
-  type: "youtube" | "podcast" | "reading" | "listening" | "app" | "exercise";
+  type: "youtube" | "podcast" | "reading" | "listening" | "app" | "exercise" | "bilibili";
   description: string;
   descriptionChinese: string;
 }
 
 const RESOURCES: Record<Level, Resource[]> = {
   A1: [
+    // Bilibili
+    { title: "English Phonics 英语自然拼读课程", titleChinese: "📺 B站·英语自然拼读系统课程", url: "https://www.bilibili.com/video/BV1hb41167ki/", type: "bilibili", description: "Complete phonics course on Bilibili", descriptionChinese: "系统自然拼读课程，从字母到拼读规则" },
+    { title: "牛津自然拼读 Oxford Phonics World", titleChinese: "📺 B站·牛津自然拼读全套L1-L5", url: "https://www.bilibili.com/video/BV1hb41167ki/", type: "bilibili", description: "Oxford Phonics World L1-L5 on Bilibili", descriptionChinese: "牛津出版社全套330集自然拼读视频" },
+    { title: "Fun Phonics 自然拼读动画", titleChinese: "📺 B站·Fun Phonics 60集全", url: "https://www.bilibili.com/video/BV1t11TYsEMz/", type: "bilibili", description: "Fun Phonics animated series on Bilibili", descriptionChinese: "有趣的自然拼读动画，寓教于乐" },
     // YouTube
-    { title: "English Singsing - Kids English", titleChinese: "儿童英语动画（简单对话）", url: "https://www.youtube.com/@EnglishSingsing", type: "youtube", description: "Animated stories for absolute beginners", descriptionChinese: "动画故事，适合零基础，有中文字幕" },
-    { title: "Learn English with EnglishClass101", titleChinese: "英语教室101 - 零基础课程", url: "https://www.youtube.com/@EnglishClass101", type: "youtube", description: "Structured lessons from ABC to basic conversation", descriptionChinese: "从字母到基础对话的系统课程" },
-    { title: "BBC Learning English - Beginners", titleChinese: "BBC英语教学 - 入门", url: "https://www.youtube.com/@bbclearningenglish", type: "youtube", description: "BBC's official English learning channel", descriptionChinese: "BBC官方英语教学频道" },
+    { title: "English Singsing - Kids English", titleChinese: "YouTube·儿童英语动画", url: "https://www.youtube.com/@EnglishSingsing", type: "youtube", description: "Animated stories for absolute beginners", descriptionChinese: "动画故事，适合零基础，有中文字幕" },
+    { title: "Learn English with EnglishClass101", titleChinese: "YouTube·英语教室101", url: "https://www.youtube.com/@EnglishClass101", type: "youtube", description: "Structured lessons from ABC to basic conversation", descriptionChinese: "从字母到基础对话的系统课程" },
+    { title: "BBC Learning English - Beginners", titleChinese: "YouTube·BBC英语教学入门", url: "https://www.youtube.com/@bbclearningenglish", type: "youtube", description: "BBC's official English learning channel", descriptionChinese: "BBC官方英语教学频道" },
     // Podcast
     { title: "6 Minute English (BBC)", titleChinese: "6分钟英语（BBC）", url: "https://www.bbc.co.uk/learningenglish/english/features/6-minute-english", type: "podcast", description: "Short episodes on everyday topics", descriptionChinese: "日常话题的短节目，适合初学者" },
     { title: "Voice of America - Learning English", titleChinese: "美国之音学英语", url: "https://learningenglish.voanews.com/", type: "podcast", description: "Slow-speed news in simple English", descriptionChinese: "慢速新闻，简单英语" },
@@ -84,6 +88,7 @@ const TYPE_ICONS: Record<string, string> = {
   listening: "👂",
   app: "📱",
   exercise: "✏️",
+  bilibili: "📺",
 };
 
 const LEVEL_INFO: Record<Level, { label: string; color: string; desc: string; timeline: string; goals: string[] }> = {
@@ -148,7 +153,7 @@ export default function LearningResourcesPage() {
 
       {/* Type Filter */}
       <div className="flex gap-2 overflow-x-auto px-4 pb-3">
-        {["all", "youtube", "podcast", "reading", "listening", "app", "exercise"].map((type) => (
+        {["all", "bilibili", "youtube", "podcast", "reading", "listening", "app", "exercise"].map((type) => (
           <button
             key={type}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition ${
@@ -159,6 +164,7 @@ export default function LearningResourcesPage() {
             onClick={() => setSelectedType(type)}
           >
             {type === "all" ? "全部" : `${TYPE_ICONS[type] || ""} ${
+              type === "bilibili" ? "B站" :
               type === "youtube" ? "视频" :
               type === "podcast" ? "播客" :
               type === "reading" ? "阅读" :

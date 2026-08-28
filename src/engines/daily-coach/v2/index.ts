@@ -484,9 +484,12 @@ export class DailyCoachEngineV2 {
   generateMission(profile: LearnerProfile): DailyMission {
     const day = Math.max(1, Math.min(360, profile.currentDay || 1));
     const today = new Date().toISOString().split("T")[0];
-    const missionId = `mission_${profile.userId}_${today}`;
+    // Include profile levels in the cache key so that missions are regenerated
+    // when the learner's profile changes (e.g. adaptive difficulty adjustment).
+    const avgLevel = Math.round((profile.vocabularyLevel + profile.listeningLevel + profile.speakingLevel + profile.grammarLevel) / 4);
+    const missionId = `mission_${profile.userId}_${today}_${avgLevel}_${profile.listeningLevel}`;
 
-    // Check if mission already generated today
+    // Check if mission already generated today with the same profile
     const existing = this.missions.get(missionId);
     if (existing) return existing;
 
@@ -530,7 +533,7 @@ export class DailyCoachEngineV2 {
         descriptionChinese: `学习第${day}天的${dayVocab.length}个新词汇`,
         durationMinutes: 30,
         priority: "high",
-        content: { words: dayVocab },
+        content: { words: dayVocab, newWordsCount: dayVocab.length },
         completed: false,
       },
       {

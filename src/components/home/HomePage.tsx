@@ -842,6 +842,13 @@ export default function HomePage() {
       {/* Quick Actions */}
       <div className="space-y-2 mb-4">
         <button
+          onClick={() => navigate("/phonics")}
+          className="w-full rounded-lg bg-teal-600 px-4 py-3 text-left text-white transition-colors hover:bg-teal-700"
+        >
+          <div className="font-medium">🔤 自然拼读 Phonics</div>
+          <div className="text-xs text-teal-100">见词能读 · 听音能写 · 字母发音 · 拼读规则 · 测验</div>
+        </button>
+        <button
           onClick={() => navigate("/path")}
           className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-left text-white transition-colors hover:bg-indigo-700"
         >
