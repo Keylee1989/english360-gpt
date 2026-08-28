@@ -294,47 +294,56 @@ export default function PhonicsPage() {
           <div className="space-y-4">
             <div className="card bg-blue-50">
               <p className="text-sm text-blue-700">
-                👆 点击任意字母听发音和例词。注意区分<strong>字母名称</strong>和<strong>字母发音</strong>。
+                👆 点击字母听<strong>纯粹的字母读音</strong>。点击音标听<strong>该字母在单词中的发音</strong>。
               </p>
             </div>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-              {alphabet.map((letter) => (
-                <button
-                  key={letter.uppercase}
-                  onClick={() => {
-                    speak(`${letter.uppercase}. ${letter.uppercase} as in ${letter.example}. ${letter.exampleMeaning}.`, 0.65);
-                  }}
-                  className="flex flex-col items-center rounded-xl border-2 border-gray-200 bg-white p-3 transition-all hover:border-blue-400 hover:shadow-md active:scale-95"
-                >
-                  <span className="text-2xl font-bold text-primary-600">
-                    {letter.uppercase}
-                  </span>
-                  <span className="text-xs text-gray-500">{letter.chineseHint}</span>
-                  <span className="text-xs text-gray-400">{letter.example}</span>
-                </button>
-              ))}
-            </div>
+            {/* Vowels */}
             <div className="card">
-              <h3 className="font-bold mb-2">元音 vs 辅音</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-red-50 p-3">
-                  <div className="font-bold text-red-700 text-sm mb-1">元音 Vowels</div>
-                  <div className="flex gap-2">
-                    {["A", "E", "I", "O", "U"].map((v) => (
-                      <span key={v} className="text-xl font-bold text-red-600">{v}</span>
-                    ))}
+              <h3 className="font-bold mb-1 text-red-700">🔴 元音 Vowels（5个）</h3>
+              <p className="text-xs text-gray-500 mb-3">每个音节必须有元音</p>
+              <div className="grid grid-cols-5 gap-2">
+                {alphabet.filter(l => ["A","E","I","O","U"].includes(l.uppercase)).map((letter) => (
+                  <div key={letter.uppercase} className="flex flex-col items-center rounded-xl border-2 border-red-200 bg-red-50 p-2">
+                    <button
+                      onClick={() => speak(letter.uppercase, 0.6)}
+                      className="text-2xl font-bold text-red-600 hover:text-red-800 active:scale-95 transition-all"
+                    >
+                      {letter.uppercase}
+                    </button>
+                    <span className="text-xs text-gray-500">{letter.nameIPA}</span>
+                    <span className="text-xs text-gray-400">{letter.chineseHint}</span>
+                    <button
+                      onClick={() => speak(letter.example, 0.7)}
+                      className="mt-1 rounded bg-red-100 px-2 py-0.5 text-xs text-red-600 hover:bg-red-200"
+                    >
+                      {letter.example} 🔊
+                    </button>
                   </div>
-                  <p className="text-xs text-red-500 mt-1">每个音节必须有元音</p>
-                </div>
-                <div className="rounded-lg bg-blue-50 p-3">
-                  <div className="font-bold text-blue-700 text-sm mb-1">辅音 Consonants</div>
-                  <div className="flex flex-wrap gap-1">
-                    {"BCDFGHJKLMNPQRSTVWXYZ".split("").map((c) => (
-                      <span key={c} className="text-sm font-medium text-blue-600">{c}</span>
-                    ))}
+                ))}
+              </div>
+            </div>
+            {/* Consonants */}
+            <div className="card">
+              <h3 className="font-bold mb-1 text-blue-700">🔵 辅音 Consonants（21个）</h3>
+              <p className="text-xs text-gray-500 mb-3">点击听字母名称，点例词听辅音发音</p>
+              <div className="grid grid-cols-5 sm:grid-cols-7 gap-2">
+                {alphabet.filter(l => !['A','E','I','O','U'].includes(l.uppercase)).map((letter) => (
+                  <div key={letter.uppercase} className="flex flex-col items-center rounded-xl border-2 border-blue-200 bg-blue-50 p-2">
+                    <button
+                      onClick={() => speak(letter.uppercase, 0.6)}
+                      className="text-xl font-bold text-blue-600 hover:text-blue-800 active:scale-95 transition-all"
+                    >
+                      {letter.uppercase}
+                    </button>
+                    <span className="text-xs text-gray-400">{letter.chineseHint}</span>
+                    <button
+                      onClick={() => speak(letter.example, 0.7)}
+                      className="mt-1 rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-600 hover:bg-blue-200"
+                    >
+                      {letter.example} 🔊
+                    </button>
                   </div>
-                  <p className="text-xs text-blue-500 mt-1">21个辅音字母</p>
-                </div>
+                ))}
               </div>
             </div>
           </div>
@@ -346,7 +355,7 @@ export default function PhonicsPage() {
           <div className="space-y-3">
             <div className="card bg-green-50">
               <p className="text-sm text-green-700">
-                📚 以下是核心拼读规则。点击规则展开详情，点击单词听发音。
+                📚 以下是核心拼读规则。点击规则名、音标、例词均可听发音。
               </p>
             </div>
             {rules.map((rule) => (
@@ -358,9 +367,12 @@ export default function PhonicsPage() {
                   className="w-full flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-primary-600">
-                      {rule.pattern}
-                    </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); speak(rule.pattern, 0.7); }}
+                      className="rounded-lg bg-primary-100 px-2 py-0.5 text-lg font-bold text-primary-700 hover:bg-primary-200 transition"
+                    >
+                      {rule.pattern} 🔊
+                    </button>
                     <span className="text-sm font-medium">{rule.chineseName}</span>
                   </div>
                   <span className="text-gray-400">
@@ -370,9 +382,23 @@ export default function PhonicsPage() {
                 {expandedRule === rule.id && (
                   <div className="mt-3 space-y-3">
                     <p className="text-sm text-gray-600">{rule.chineseDescription}</p>
-                    <p className="text-sm text-gray-500">
-                      发音：<span className="font-mono font-bold">{rule.soundIPA}</span> — {rule.chineseHint}
-                    </p>
+                    {/* Clickable sound row */}
+                    <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+                      <button
+                        onClick={() => speak(rule.pattern, 0.7)}
+                        className="rounded-lg bg-primary-100 px-3 py-1.5 text-lg font-bold text-primary-700 hover:bg-primary-200 transition"
+                      >
+                        {rule.pattern} 🔊
+                      </button>
+                      <span className="text-gray-400">→</span>
+                      <button
+                        onClick={() => speak(rule.examples[0]?.word || rule.pattern, 0.7)}
+                        className="rounded-lg bg-green-100 px-3 py-1.5 text-lg font-mono font-bold text-green-700 hover:bg-green-200 transition"
+                      >
+                        {rule.soundIPA} 🔊
+                      </button>
+                      <span className="text-sm text-gray-500">{rule.chineseHint}</span>
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       {rule.examples.map((ex) => (
                         <button
