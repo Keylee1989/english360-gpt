@@ -25,14 +25,127 @@ function speak(text: string, rate = 0.75) {
   window.speechSynthesis.speak(u);
 }
 
-/** Speak an isolated phoneme approximation */
-function speakPhoneme(pattern: string, rate = 0.5) {
+/**
+ * English text approximations for each letter's phoneme sound.
+ * Web Speech API cannot play isolated IPA phonemes, so we use
+ * carefully chosen English text that the TTS engine pronounces
+ * close to the target phoneme.
+ */
+const LETTER_PHONEME_SOUND: Record<string, string> = {
+  A: "aa",      // /æ/ as in cat
+  B: "buh",     // /b/
+  C: "kuh",     // /k/
+  D: "duh",     // /d/
+  E: "eh",      // /ɛ/ as in bed
+  F: "fuh",     // /f/
+  G: "guh",     // /ɡ/
+  H: "huh",     // /h/
+  I: "ih",      // /ɪ/ as in sit
+  J: "juh",     // /dʒ/
+  K: "kuh",     // /k/
+  L: "luh",     // /l/
+  M: "muh",     // /m/
+  N: "nuh",     // /n/
+  O: "ah",      // /ɒ/ as in hot
+  P: "puh",     // /p/
+  Q: "kyoo",    // /kjuː/
+  R: "ruh",     // /r/
+  S: "suh",     // /s/
+  T: "tuh",     // /t/
+  U: "uh",      // /ʌ/ as in cup
+  V: "vuh",     // /v/
+  W: "wuh",     // /w/
+  X: "ks",      // /ks/
+  Y: "yuh",     // /j/
+  Z: "zuh",     // /z/
+};
+
+/** English approximations for IPA symbols */
+const IPA_SOUND_MAP: Record<string, string> = {
+  "/æ/": "aa",      // as in cat
+  "/ɛ/": "eh",      // as in bed
+  "/ɪ/": "ih",      // as in sit
+  "/ɒ/": "oh",      // as in hot
+  "/ʌ/": "uh",      // as in cup
+  "/eɪ/": "ay",     // as in cake
+  "/iː/": "ee",     // as in tree
+  "/aɪ/": "eye",    // as in bike
+  "/oʊ/": "oh",     // as in home
+  "/juː/": "you",   // as in cute
+  "/tʃ/": "chuh",   // as in chair
+  "/ʃ/": "shh",     // as in ship
+  "/θ/": "th",      // as in think (voiceless)
+  "/ð/": "thh",     // as in this (voiced)
+  "/ŋ/": "ng",      // as in sing
+  "/s/": "sss",     // as in sun
+  "/z/": "zzz",     // as in zoo
+  "/r/": "rrr",     // as in red
+  "/l/": "lll",     // as in light
+  "/dʒ/": "juh",    // as in juice
+  "/b/": "buh",     // as in bus
+  "/d/": "duh",     // as in dog
+  "/f/": "fff",     // as in fish
+  "/ɡ/": "guh",     // as in go
+  "/h/": "huh",     // as in hat
+  "/k/": "kuh",     // as in cat
+  "/m/": "mmm",     // as in moon
+  "/n/": "nnn",     // as in no
+  "/p/": "puh",     // as in pen
+  "/t/": "tuh",     // as in tree
+  "/v/": "vvv",     // as in van
+  "/w/": "wuh",     // as in water
+  "/j/": "yuh",     // as in yellow
+};
+
+/** Play a phoneme using English text approximation */
+function speakPhoneme(text: string, rate = 0.5) {
   window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(pattern);
+  const u = new SpeechSynthesisUtterance(text);
   u.lang = "en-US";
   u.rate = rate;
-  u.pitch = 1.2;
+  u.pitch = 1.0;
   window.speechSynthesis.speak(u);
+}
+
+/** English approximations for rule patterns */
+const RULE_PATTERN_SOUND: Record<string, string> = {
+  "a": "aa",
+  "e": "eh",
+  "i": "ih",
+  "o": "oh",
+  "u": "uh",
+  "a_e": "ay",
+  "ee": "ee",
+  "i_e": "eye",
+  "o_e": "oh",
+  "u_e": "you",
+  "ch": "chuh",
+  "sh": "shh",
+  "th": "th",
+  "ng": "ng",
+};
+
+/** Play a letter's phoneme sound */
+function speakLetterPhoneme(letter: string) {
+  const sound = LETTER_PHONEME_SOUND[letter.toUpperCase()];
+  if (sound) speakPhoneme(sound, 0.5);
+}
+
+/** Play a rule pattern's sound */
+function speakRulePattern(pattern: string) {
+  const sound = RULE_PATTERN_SOUND[pattern];
+  if (sound) {
+    speakPhoneme(sound, 0.5);
+  } else {
+    // Fallback: speak the first example word
+    speak(pattern, 0.6);
+  }
+}
+
+/** Play an IPA symbol's sound */
+function speakIPASound(ipa: string) {
+  const sound = IPA_SOUND_MAP[ipa] || ipa;
+  speakPhoneme(sound, 0.5);
 }
 
 // ============================================================
@@ -214,17 +327,32 @@ export default function PhonicsPage() {
   }, []);
 
   // Blending practice handler
-  const handleBlend = useCallback((word: string) => {
+  const handleBlend = useCallback((word: string, partsStr: string) => {
     setBlendResult(null);
-    // Speak each part slowly, then the whole word
-    const parts = word.split("");
+    // Parse hyphen-separated parts: "f-i-sh" -> ["f", "i", "sh"]
+    const parts = partsStr.split("-").map(p => p.trim());
+    // Speak each part slowly using letter phoneme sounds
     parts.forEach((p, i) => {
-      setTimeout(() => speakPhoneme(p, 0.4), i * 600);
+      setTimeout(() => {
+        // If it's a single letter, use the phoneme map
+        if (p.length === 1 && LETTER_PHONEME_SOUND[p.toUpperCase()]) {
+          speakPhoneme(LETTER_PHONEME_SOUND[p.toUpperCase()], 0.4);
+        } else {
+          // Multi-char blend like "sh", "ch", "th" — speak as approximation
+          const blendSounds: Record<string, string> = {
+            sh: "shh", ch: "chuh", th: "th", ng: "ng",
+            tr: "truh", dr: "duh", st: "stuh",
+            "a_ke": "ay", "oo": "oo", "air": "air",
+          };
+          speakPhoneme(blendSounds[p.toLowerCase()] || p, 0.4);
+        }
+      }, i * 700);
     });
+    // Then speak the whole word
     setTimeout(() => {
       speak(word, 0.6);
-      setBlendResult(`✅ ${word}`);
-    }, parts.length * 600 + 400);
+      setBlendResult(`${parts.join(" + ")} = ${word}`);
+    }, parts.length * 700 + 400);
   }, []);
 
   // ============================================================
@@ -375,7 +503,7 @@ export default function PhonicsPage() {
                           <span className="text-[10px] text-gray-400">{letter.nameIPA}</span>
                         </button>
                         <button
-                          onClick={() => speakPhoneme(letter.chineseHint, 0.5)}
+                          onClick={() => speakLetterPhoneme(letter.uppercase)}
                           className="flex-1 rounded-lg bg-white border border-red-200 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100 active:scale-95 transition-all"
                         >
                           🔊 发音<br />
@@ -479,14 +607,14 @@ export default function PhonicsPage() {
                       <div className="text-xs font-medium text-gray-500 mb-1">🔊 发音示范</div>
                       <div className="flex flex-wrap items-center gap-2">
                         <button
-                          onClick={() => speak(rule.pattern, 0.5)}
+                          onClick={() => speakRulePattern(rule.pattern)}
                           className="rounded-lg bg-primary-100 px-3 py-1.5 text-sm font-bold text-primary-700 hover:bg-primary-200 transition"
                         >
                           模式: {rule.pattern} 🔊
                         </button>
                         <span className="text-gray-300">→</span>
                         <button
-                          onClick={() => speak(rule.examples[0]?.word || "", 0.7)}
+                          onClick={() => speakIPASound(rule.soundIPA)}
                           className="rounded-lg bg-green-100 px-3 py-1.5 text-sm font-mono font-bold text-green-700 hover:bg-green-200 transition"
                         >
                           {rule.soundIPA} 🔊
@@ -563,7 +691,7 @@ export default function PhonicsPage() {
                 ].map((item) => (
                   <button
                     key={item.word}
-                    onClick={() => handleBlend(item.word)}
+                    onClick={() => handleBlend(item.word, item.parts)}
                     className="rounded-xl border-2 border-indigo-200 bg-white p-3 text-left hover:border-indigo-400 hover:bg-indigo-50 transition active:scale-95"
                   >
                     <div className="font-bold text-indigo-700">{item.word}</div>
