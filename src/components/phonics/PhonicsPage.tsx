@@ -17,11 +17,24 @@ import { PhonicsEngine } from "@/engines/phonics";
 // TTS Helper
 // ============================================================
 
+/** Find an English voice — iOS Safari ignores lang and uses Chinese */
+function getEnglishVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  // Prefer en-US, then any en-* voice
+  return (
+    voices.find((v) => v.lang === "en-US") ||
+    voices.find((v) => v.lang.startsWith("en-")) ||
+    null
+  );
+}
+
 function speak(text: string, rate = 0.75) {
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = "en-US";
   u.rate = rate;
+  const voice = getEnglishVoice();
+  if (voice) u.voice = voice;
   window.speechSynthesis.speak(u);
 }
 
@@ -104,6 +117,8 @@ function speakPhoneme(text: string, rate = 0.5) {
   u.lang = "en-US";
   u.rate = rate;
   u.pitch = 1.0;
+  const voice = getEnglishVoice();
+  if (voice) u.voice = voice;
   window.speechSynthesis.speak(u);
 }
 
