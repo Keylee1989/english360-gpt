@@ -468,55 +468,47 @@ export default function PhonicsPage() {
           <div className="space-y-4">
             <div className="card bg-blue-50">
               <p className="text-sm text-blue-700">
-                👆 三种按钮：<strong>名称</strong>（字母怎么念）、<strong>发音</strong>（字母在单词里怎么读）、<strong>例词</strong>（点击听完整单词）
+                👆 <strong>点击大写字母</strong>听字母名称读音，点击 <strong>🔊</strong> 听字母在单词中的发音，点击 <strong>例词</strong> 听完整单词
               </p>
             </div>
             {/* Vowels */}
             <div className="card">
               <h3 className="font-bold mb-1 text-red-700">🔴 元音 Vowels（5个）</h3>
               <p className="text-xs text-gray-500 mb-3">每个音节必须有元音，元音发音时间较长</p>
-              <div className="space-y-3">
+              <div className="grid grid-cols-5 gap-3">
                 {alphabet
                   .filter((l) => ["A", "E", "I", "O", "U"].includes(l.uppercase))
                   .map((letter) => (
                     <div
                       key={letter.uppercase}
-                      className="rounded-xl border-2 border-red-200 bg-red-50 p-3"
+                      className="flex flex-col items-center rounded-xl border-2 border-red-200 bg-red-50 p-3"
                     >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="text-3xl font-bold text-red-600">
-                          {letter.uppercase}
-                          <span className="text-xl text-red-400">{letter.lowercase}</span>
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-xs text-gray-500">
-                            IPA: {letter.nameIPA} · 中文近似: {letter.chineseHint}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => speak(letter.uppercase, 0.6)}
-                          className="flex-1 rounded-lg bg-white border border-red-200 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100 active:scale-95 transition-all"
-                        >
-                          🔤 名称<br />
-                          <span className="text-[10px] text-gray-400">{letter.nameIPA}</span>
-                        </button>
-                        <button
-                          onClick={() => speakLetterPhoneme(letter.uppercase)}
-                          className="flex-1 rounded-lg bg-white border border-red-200 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100 active:scale-95 transition-all"
-                        >
-                          🔊 发音<br />
-                          <span className="text-[10px] text-gray-400">{letter.soundIPA}</span>
-                        </button>
-                        <button
-                          onClick={() => speak(letter.example, 0.7)}
-                          className="flex-1 rounded-lg bg-red-100 border border-red-200 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-200 active:scale-95 transition-all"
-                        >
-                          📝 例词<br />
-                          <span className="text-[10px]">{letter.example} ({letter.exampleMeaning})</span>
-                        </button>
-                      </div>
+                      {/* Clickable big letter — reads letter name */}
+                      <button
+                        onClick={() => speak(letter.uppercase, 0.6)}
+                        className="text-4xl font-bold text-red-600 hover:text-red-800 active:scale-90 transition-all cursor-pointer mb-1"
+                        title={`点击听字母名称: ${letter.name} (${letter.nameIPA})`}
+                      >
+                        {letter.uppercase}
+                        <span className="text-2xl text-red-400">{letter.lowercase}</span>
+                      </button>
+                      <div className="text-[10px] text-gray-500 mb-1">{letter.nameIPA}</div>
+                      {/* Phoneme sound button */}
+                      <button
+                        onClick={() => speakLetterPhoneme(letter.uppercase)}
+                        className="w-full rounded-lg bg-white border border-red-200 px-1 py-1 text-[10px] font-medium text-red-600 hover:bg-red-100 active:scale-95 transition-all mb-1"
+                        title="听字母在单词中的发音"
+                      >
+                        🔊 {letter.soundIPA}
+                      </button>
+                      {/* Example word button */}
+                      <button
+                        onClick={() => speak(letter.example, 0.7)}
+                        className="w-full rounded-lg bg-red-100 border border-red-200 px-1 py-1 text-[10px] font-medium text-red-700 hover:bg-red-200 active:scale-95 transition-all"
+                        title={`听例词: ${letter.example} (${letter.exampleMeaning})`}
+                      >
+                        {letter.example} 🔊
+                      </button>
                     </div>
                   ))}
               </div>
@@ -525,7 +517,7 @@ export default function PhonicsPage() {
             <div className="card">
               <h3 className="font-bold mb-1 text-blue-700">🔵 辅音 Consonants（21个）</h3>
               <p className="text-xs text-gray-500 mb-3">辅音发音较短促，气流受阻碍</p>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                 {alphabet
                   .filter((l) => !["A", "E", "I", "O", "U"].includes(l.uppercase))
                   .map((letter) => (
@@ -533,27 +525,31 @@ export default function PhonicsPage() {
                       key={letter.uppercase}
                       className="flex flex-col items-center rounded-xl border-2 border-blue-200 bg-blue-50 p-2"
                     >
-                      <div className="text-xl font-bold text-blue-600">
+                      {/* Clickable big letter — reads letter name */}
+                      <button
+                        onClick={() => speak(letter.uppercase, 0.6)}
+                        className="text-2xl font-bold text-blue-600 hover:text-blue-800 active:scale-90 transition-all cursor-pointer"
+                        title={`点击听字母名称: ${letter.name} (${letter.nameIPA})`}
+                      >
                         {letter.uppercase}
-                        <span className="text-sm text-blue-400">{letter.lowercase}</span>
-                      </div>
-                      <span className="text-[10px] text-gray-400">{letter.chineseHint}</span>
-                      <div className="flex gap-1 mt-1">
-                        <button
-                          onClick={() => speak(letter.uppercase, 0.6)}
-                          className="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-100"
-                          title="听字母名称"
-                        >
-                          🔤
-                        </button>
-                        <button
-                          onClick={() => speak(letter.example, 0.7)}
-                          className="rounded bg-blue-100 border border-blue-200 px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-200"
-                          title={`听例词: ${letter.example}`}
-                        >
-                          {letter.example} 🔊
-                        </button>
-                      </div>
+                        <span className="text-lg text-blue-400">{letter.lowercase}</span>
+                      </button>
+                      {/* Phoneme sound button */}
+                      <button
+                        onClick={() => speakLetterPhoneme(letter.uppercase)}
+                        className="w-full rounded bg-white border border-blue-200 px-1 py-0.5 text-[9px] text-blue-600 hover:bg-blue-100 active:scale-95 transition-all mt-1"
+                        title="听字母在单词中的发音"
+                      >
+                        🔊 {letter.soundIPA}
+                      </button>
+                      {/* Example word button */}
+                      <button
+                        onClick={() => speak(letter.example, 0.7)}
+                        className="w-full rounded bg-blue-100 border border-blue-200 px-1 py-0.5 text-[9px] text-blue-600 hover:bg-blue-200 active:scale-95 transition-all mt-0.5"
+                        title={`听例词: ${letter.example} (${letter.exampleMeaning})`}
+                      >
+                        {letter.example} 🔊
+                      </button>
                     </div>
                   ))}
               </div>
