@@ -1,16 +1,16 @@
 /**
- * PhonicsPage — 自然拼读知识大全
+ * PhonicsPage — 自然拼读知识大全 (Enhanced v2)
  *
- * Features:
- * - Learning path overview (7 stages)
- * - Interactive alphabet chart with click-to-hear
- * - Phonics rules with examples
- * - Chinese-specific pronunciation challenges
- * - Quiz/test section
- * - Bilibili video resources
+ * Improvements over v1:
+ * - Alphabet: shows both uppercase+lowercase (Aa), 3 buttons per letter
+ *   (name / phoneme / example word)
+ * - Rules: dedicated sound isolation buttons, richer example display
+ * - Blending practice section in overview
+ * - Dynamic quiz generated from engine data
+ * - Chinese challenges with mouth diagram hints
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { PhonicsEngine } from "@/engines/phonics";
 
 // ============================================================
@@ -25,14 +25,24 @@ function speak(text: string, rate = 0.75) {
   window.speechSynthesis.speak(u);
 }
 
+/** Speak an isolated phoneme approximation */
+function speakPhoneme(pattern: string, rate = 0.5) {
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(pattern);
+  u.lang = "en-US";
+  u.rate = rate;
+  u.pitch = 1.2;
+  window.speechSynthesis.speak(u);
+}
+
 // ============================================================
 // Tab Types
 // ============================================================
 
-type Tab = "overview" | "alphabet" | "rules" | "chinese" | "quiz" | "resources";
+type Tab = "overview" | "alphabet" | "rules" | "blending" | "chinese" | "quiz" | "resources";
 
 // ============================================================
-// Quiz Data
+// Dynamic Quiz Generation
 // ============================================================
 
 interface QuizQuestion {
@@ -42,95 +52,113 @@ interface QuizQuestion {
   answer: number;
   explanation: string;
   explanationZh: string;
+  type: "letter" | "rule" | "challenge" | "blend";
 }
 
-const QUIZ_QUESTIONS: QuizQuestion[] = [
-  {
-    question: "Which letter makes the /ae/ sound in 'cat'?",
-    questionZh: "cat 中哪个字母发 /ae/ 的音？",
-    options: ["c", "a", "t", "none"],
-    answer: 1,
-    explanation: "The letter 'a' in CVC words like cat, hat, bat makes the short /ae/ sound.",
-    explanationZh: "CVC 结构的单词中（如 cat、hat、bat），字母 a 发短元音 /ae/。",
-  },
-  {
-    question: "What sound does 'sh' make in 'ship'?",
-    questionZh: "ship 中 sh 发什么音？",
-    options: ["/s/ + /h/", "/sh/", "/ch/", "/th/"],
-    answer: 1,
-    explanation: "sh is a digraph that makes the /sh/ sound, like Chinese xu.",
-    explanationZh: "sh 是一个双字母组合，发 /sh/ 音，类似嘘声。",
-  },
-  {
-    question: "In the word 'cake', what does the 'e' at the end do?",
-    questionZh: "cake 中结尾的 e 有什么作用？",
-    options: [
-      "Makes no sound",
-      "Makes the 'a' say its name (long A)",
-      "Changes 'k' to /g/",
-      "Makes the word plural",
-    ],
-    answer: 1,
-    explanation: "The silent e rule: when a word ends in e, the vowel before it says its long sound.",
-    explanationZh: "魔法 e 规则：单词结尾的 e 不发音，但它让前面的元音发字母音（长音）。a_e 读 /eɪ/。",
-  },
-  {
-    question: "Which pair are minimal pairs (differ by only one sound)?",
-    questionZh: "哪一对是最小对立体（只有一个音不同）？",
-    options: ["cat / dog", "sheep / ship", "book / look", "run / ran"],
-    answer: 1,
-    explanation: "sheep and ship differ only in the vowel: /iː/ vs /ɪ/.",
-    explanationZh: "sheep 和 ship 只有元音不同：长元音 vs 短元音。",
-  },
-  {
-    question: "What is the correct phonics rule for 'ch'?",
-    questionZh: "ch 的拼读规则是什么？",
-    options: ["/k/", "/sh/", "/ch/", "/s/"],
-    answer: 2,
-    explanation: "ch makes the /ch/ sound, as in chair, cheese, child.",
-    explanationZh: "ch 发 /ch/ 音，如 chair（椅子）、cheese（奶酪）、child（孩子）。",
-  },
-  {
-    question: "How do you pronounce 'th' in 'think'?",
-    questionZh: "think 中 th 怎么发音？",
-    options: ["/t/ + /h/", "/th/ (voiceless)", "/dh/ (voiced)", "/s/"],
-    answer: 1,
-    explanation: "In think, three, thank, th is voiceless -- put your tongue between your teeth.",
-    explanationZh: "在 think、three、thank 中，th 是清辅音——舌尖放在上下齿之间。",
-  },
-  {
-    question: "What does 'ee' typically sound like?",
-    questionZh: "ee 通常发什么音？",
-    options: ["/e/", "/ee/", "/ei/", "/ai/"],
-    answer: 1,
-    explanation: "ee as in tree, bee, see, free makes the long /iː/ sound.",
-    explanationZh: "ee 在 tree、bee、see、free 等词中发长元音 /iː/。",
-  },
-  {
-    question: "Which word has a consonant blend at the beginning?",
-    questionZh: "哪个单词开头有辅音连缀？",
-    options: ["cat", "stop", "me", "egg"],
-    answer: 1,
-    explanation: "stop starts with the consonant blend 'st' -- both sounds are pronounced.",
-    explanationZh: "stop 开头的 st 是辅音连缀——两个辅音都要发音。",
-  },
-  {
-    question: "What is the pattern in the word 'happy'?",
-    questionZh: "happy 这个词的音节结构是什么？",
-    options: ["CVC", "CV-CVC", "CVC-CVC", "CV"],
-    answer: 1,
-    explanation: "happy = hap-py = CV-CVC (two syllables: CVC + CV).",
-    explanationZh: "happy = hap-py = CV-CVC（两个音节：CVC + CV）。",
-  },
-  {
-    question: "Chinese speakers often confuse /l/ and /r/. Which is correct for 'light'?",
-    questionZh: "中文母语者常混淆 /l/ 和 /r/。light 中应该用哪个？",
-    options: ["/raɪt/", "/laɪt/", "/naɪt/", "/laɪd/"],
-    answer: 1,
-    explanation: "light uses /l/ -- tongue tip touches the alveolar ridge (upper gum), not curled back.",
-    explanationZh: "light 用 /l/——舌尖接触上齿龈（牙龈凸起处），不要卷舌。",
-  },
-];
+function generateQuizQuestions(engine: PhonicsEngine): QuizQuestion[] {
+  const questions: QuizQuestion[] = [];
+  const alphabet = engine.getAlphabet();
+  const rules = engine.getRulesByOrder();
+  const challenges = engine.getChineseChallenges();
+
+  // Type 1: Letter sound questions (pick 5 random letters)
+  const shuffledAlpha = [...alphabet].sort(() => Math.random() - 0.5);
+  for (const letter of shuffledAlpha.slice(0, 5)) {
+    const wrongLetters = alphabet
+      .filter((l) => l.uppercase !== letter.uppercase)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    const options = [letter.uppercase, ...wrongLetters.map((l) => l.uppercase)].sort(
+      () => Math.random() - 0.5
+    );
+    questions.push({
+      question: `Which letter makes the ${letter.soundIPA} sound?`,
+      questionZh: `哪个字母发 ${letter.soundIPA} 的音？`,
+      options,
+      answer: options.indexOf(letter.uppercase),
+      explanation: `The letter ${letter.uppercase} (${letter.name}) makes the ${letter.soundIPA} sound, as in "${letter.example}".`,
+      explanationZh: `字母 ${letter.uppercase}（名称 ${letter.name}）发 ${letter.soundIPA} 的音，如 "${letter.example}"（${letter.exampleMeaning}）。`,
+      type: "letter",
+    });
+  }
+
+  // Type 2: Rule identification questions (pick 4 random rules)
+  const shuffledRules = [...rules].sort(() => Math.random() - 0.5);
+  for (const rule of shuffledRules.slice(0, 4)) {
+    const correctExample = rule.examples[Math.floor(Math.random() * rule.examples.length)];
+    const wrongRules = rules
+      .filter((r) => r.id !== rule.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    const options = [rule.chineseName, ...wrongRules.map((r) => r.chineseName)].sort(
+      () => Math.random() - 0.5
+    );
+    questions.push({
+      question: `In the word "${correctExample.word}" (${correctExample.ipa}), which phonics rule applies?`,
+      questionZh: `单词 "${correctExample.word}"（${correctExample.ipa}）用了哪个拼读规则？`,
+      options,
+      answer: options.indexOf(rule.chineseName),
+      explanation: `"${correctExample.word}" uses the ${rule.name} rule (${rule.pattern} = ${rule.soundIPA}). ${rule.chineseDescription}`,
+      explanationZh: `"${correctExample.word}"（${correctExample.chineseMeaning}）使用了${rule.chineseName}规则（${rule.pattern} = ${rule.soundIPA}）。`,
+      type: "rule",
+    });
+  }
+
+  // Type 3: Chinese challenge questions (pick 3)
+  const chalArr = challenges.challenges;
+  const shuffledChal = [...chalArr].sort(() => Math.random() - 0.5);
+  for (const ch of shuffledChal.slice(0, 3)) {
+    const wrongChal = chalArr
+      .filter((c) => c.sound !== ch.sound)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    const options = [ch.chineseHint, ...wrongChal.map((c) => c.chineseHint)].sort(
+      () => Math.random() - 0.5
+    );
+    questions.push({
+      question: `The sound ${ch.ipa} is described as:`,
+      questionZh: `音标 ${ch.ipa} 的发音方法是：`,
+      options,
+      answer: options.indexOf(ch.chineseHint),
+      explanation: `${ch.ipa} — ${ch.chineseHint}. Tips: ${ch.tips.join("; ")}`,
+      explanationZh: `${ch.ipa} — ${ch.chineseHint}。要点：${ch.tips.join("；")}`,
+      type: "challenge",
+    });
+  }
+
+  // Type 4: Blending questions
+  const blendPairs = [
+    { word: "cat", parts: ["c", "a", "t"], meaning: "猫" },
+    { word: "ship", parts: ["sh", "i", "p"], meaning: "船" },
+    { word: "think", parts: ["th", "i", "nk"], meaning: "想" },
+    { word: "cake", parts: ["c", "a_ke"], meaning: "蛋糕" },
+    { word: "tree", parts: ["tr", "ee"], meaning: "树" },
+    { word: "fish", parts: ["f", "i", "sh"], meaning: "鱼" },
+    { word: "book", parts: ["b", "oo", "k"], meaning: "书" },
+    { word: "chair", parts: ["ch", "air"], meaning: "椅子" },
+  ];
+  const shuffledBlend = [...blendPairs].sort(() => Math.random() - 0.5);
+  for (const bp of shuffledBlend.slice(0, 3)) {
+    const wrongBlend = blendPairs
+      .filter((b) => b.word !== bp.word)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 3);
+    const options = [bp.word, ...wrongBlend.map((b) => b.word)].sort(
+      () => Math.random() - 0.5
+    );
+    questions.push({
+      question: `Blend these sounds: ${bp.parts.join(" + ")} = ?`,
+      questionZh: `拼读这些音：${bp.parts.join(" + ")} = ？`,
+      options,
+      answer: options.indexOf(bp.word),
+      explanation: `${bp.parts.join(" + ")} = ${bp.word} (${bp.meaning})`,
+      explanationZh: `${bp.parts.join(" + ")} = ${bp.word}（${bp.meaning}）`,
+      type: "blend",
+    });
+  }
+
+  return questions.sort(() => Math.random() - 0.5);
+}
 
 // ============================================================
 // Main Component
@@ -142,13 +170,17 @@ export default function PhonicsPage() {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [expandedRule, setExpandedRule] = useState<string | null>(null);
   const [challengePlaying, setChallengePlaying] = useState<string | null>(null);
+  const [blendResult, setBlendResult] = useState<string | null>(null);
 
-  const engine = new PhonicsEngine();
+  const engine = useMemo(() => new PhonicsEngine(), []);
   const alphabet = engine.getAlphabet();
   const rules = engine.getRulesByOrder();
   const challenges = engine.getChineseChallenges();
   const learningPath = engine.getLearningPath();
   const exercises = engine.getPronunciationExercises();
+
+  // Generate quiz questions once (memoized)
+  const quizQuestions = useMemo(() => generateQuizQuestions(engine), [engine]);
 
   // Quiz handlers
   const handleQuizAnswer = useCallback((qIdx: number, oIdx: number) => {
@@ -169,7 +201,7 @@ export default function PhonicsPage() {
   }, []);
 
   const quizScore = quizSubmitted
-    ? QUIZ_QUESTIONS.filter((q, i) => quizAnswers[i] === q.answer).length
+    ? quizQuestions.filter((q, i) => quizAnswers[i] === q.answer).length
     : 0;
 
   // Play challenge sound
@@ -179,6 +211,20 @@ export default function PhonicsPage() {
       setTimeout(() => speak(w, 0.7), i * 800);
     });
     setTimeout(() => setChallengePlaying(null), words.length * 800 + 500);
+  }, []);
+
+  // Blending practice handler
+  const handleBlend = useCallback((word: string) => {
+    setBlendResult(null);
+    // Speak each part slowly, then the whole word
+    const parts = word.split("");
+    parts.forEach((p, i) => {
+      setTimeout(() => speakPhoneme(p, 0.4), i * 600);
+    });
+    setTimeout(() => {
+      speak(word, 0.6);
+      setBlendResult(`✅ ${word}`);
+    }, parts.length * 600 + 400);
   }, []);
 
   // ============================================================
@@ -294,56 +340,94 @@ export default function PhonicsPage() {
           <div className="space-y-4">
             <div className="card bg-blue-50">
               <p className="text-sm text-blue-700">
-                👆 点击字母听<strong>纯粹的字母读音</strong>。点击音标听<strong>该字母在单词中的发音</strong>。
+                👆 三种按钮：<strong>名称</strong>（字母怎么念）、<strong>发音</strong>（字母在单词里怎么读）、<strong>例词</strong>（点击听完整单词）
               </p>
             </div>
             {/* Vowels */}
             <div className="card">
               <h3 className="font-bold mb-1 text-red-700">🔴 元音 Vowels（5个）</h3>
-              <p className="text-xs text-gray-500 mb-3">每个音节必须有元音</p>
-              <div className="grid grid-cols-5 gap-2">
-                {alphabet.filter(l => ["A","E","I","O","U"].includes(l.uppercase)).map((letter) => (
-                  <div key={letter.uppercase} className="flex flex-col items-center rounded-xl border-2 border-red-200 bg-red-50 p-2">
-                    <button
-                      onClick={() => speak(letter.uppercase, 0.6)}
-                      className="text-2xl font-bold text-red-600 hover:text-red-800 active:scale-95 transition-all"
+              <p className="text-xs text-gray-500 mb-3">每个音节必须有元音，元音发音时间较长</p>
+              <div className="space-y-3">
+                {alphabet
+                  .filter((l) => ["A", "E", "I", "O", "U"].includes(l.uppercase))
+                  .map((letter) => (
+                    <div
+                      key={letter.uppercase}
+                      className="rounded-xl border-2 border-red-200 bg-red-50 p-3"
                     >
-                      {letter.uppercase}
-                    </button>
-                    <span className="text-xs text-gray-500">{letter.nameIPA}</span>
-                    <span className="text-xs text-gray-400">{letter.chineseHint}</span>
-                    <button
-                      onClick={() => speak(letter.example, 0.7)}
-                      className="mt-1 rounded bg-red-100 px-2 py-0.5 text-xs text-red-600 hover:bg-red-200"
-                    >
-                      {letter.example} 🔊
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="text-3xl font-bold text-red-600">
+                          {letter.uppercase}
+                          <span className="text-xl text-red-400">{letter.lowercase}</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-xs text-gray-500">
+                            IPA: {letter.nameIPA} · 中文近似: {letter.chineseHint}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => speak(letter.uppercase, 0.6)}
+                          className="flex-1 rounded-lg bg-white border border-red-200 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100 active:scale-95 transition-all"
+                        >
+                          🔤 名称<br />
+                          <span className="text-[10px] text-gray-400">{letter.nameIPA}</span>
+                        </button>
+                        <button
+                          onClick={() => speakPhoneme(letter.chineseHint, 0.5)}
+                          className="flex-1 rounded-lg bg-white border border-red-200 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-100 active:scale-95 transition-all"
+                        >
+                          🔊 发音<br />
+                          <span className="text-[10px] text-gray-400">{letter.soundIPA}</span>
+                        </button>
+                        <button
+                          onClick={() => speak(letter.example, 0.7)}
+                          className="flex-1 rounded-lg bg-red-100 border border-red-200 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-200 active:scale-95 transition-all"
+                        >
+                          📝 例词<br />
+                          <span className="text-[10px]">{letter.example} ({letter.exampleMeaning})</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
             {/* Consonants */}
             <div className="card">
               <h3 className="font-bold mb-1 text-blue-700">🔵 辅音 Consonants（21个）</h3>
-              <p className="text-xs text-gray-500 mb-3">点击听字母名称，点例词听辅音发音</p>
-              <div className="grid grid-cols-5 sm:grid-cols-7 gap-2">
-                {alphabet.filter(l => !['A','E','I','O','U'].includes(l.uppercase)).map((letter) => (
-                  <div key={letter.uppercase} className="flex flex-col items-center rounded-xl border-2 border-blue-200 bg-blue-50 p-2">
-                    <button
-                      onClick={() => speak(letter.uppercase, 0.6)}
-                      className="text-xl font-bold text-blue-600 hover:text-blue-800 active:scale-95 transition-all"
+              <p className="text-xs text-gray-500 mb-3">辅音发音较短促，气流受阻碍</p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {alphabet
+                  .filter((l) => !["A", "E", "I", "O", "U"].includes(l.uppercase))
+                  .map((letter) => (
+                    <div
+                      key={letter.uppercase}
+                      className="flex flex-col items-center rounded-xl border-2 border-blue-200 bg-blue-50 p-2"
                     >
-                      {letter.uppercase}
-                    </button>
-                    <span className="text-xs text-gray-400">{letter.chineseHint}</span>
-                    <button
-                      onClick={() => speak(letter.example, 0.7)}
-                      className="mt-1 rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-600 hover:bg-blue-200"
-                    >
-                      {letter.example} 🔊
-                    </button>
-                  </div>
-                ))}
+                      <div className="text-xl font-bold text-blue-600">
+                        {letter.uppercase}
+                        <span className="text-sm text-blue-400">{letter.lowercase}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-400">{letter.chineseHint}</span>
+                      <div className="flex gap-1 mt-1">
+                        <button
+                          onClick={() => speak(letter.uppercase, 0.6)}
+                          className="rounded bg-white border border-blue-200 px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-100"
+                          title="听字母名称"
+                        >
+                          🔤
+                        </button>
+                        <button
+                          onClick={() => speak(letter.example, 0.7)}
+                          className="rounded bg-blue-100 border border-blue-200 px-1.5 py-0.5 text-[10px] text-blue-600 hover:bg-blue-200"
+                          title={`听例词: ${letter.example}`}
+                        >
+                          {letter.example} 🔊
+                        </button>
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
@@ -355,7 +439,7 @@ export default function PhonicsPage() {
           <div className="space-y-3">
             <div className="card bg-green-50">
               <p className="text-sm text-green-700">
-                📚 以下是核心拼读规则。点击规则名、音标、例词均可听发音。
+                📚 以下是核心拼读规则。点击 <strong>🔊</strong> 按钮听发音示范。每个规则展开后有多个例词可点击听。
               </p>
             </div>
             {rules.map((rule) => (
@@ -367,11 +451,18 @@ export default function PhonicsPage() {
                   className="w-full flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
+                    <span className="rounded-lg bg-primary-100 px-2 py-0.5 text-lg font-bold text-primary-700">
+                      {rule.pattern}
+                    </span>
                     <button
-                      onClick={(e) => { e.stopPropagation(); speak(rule.pattern, 0.7); }}
-                      className="rounded-lg bg-primary-100 px-2 py-0.5 text-lg font-bold text-primary-700 hover:bg-primary-200 transition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        speak(rule.examples[0]?.word || rule.pattern, 0.7);
+                      }}
+                      className="rounded-full bg-primary-500 text-white w-7 h-7 flex items-center justify-center text-xs hover:bg-primary-600 transition"
+                      title="听发音示范"
                     >
-                      {rule.pattern} 🔊
+                      🔊
                     </button>
                     <span className="text-sm font-medium">{rule.chineseName}</span>
                   </div>
@@ -382,23 +473,29 @@ export default function PhonicsPage() {
                 {expandedRule === rule.id && (
                   <div className="mt-3 space-y-3">
                     <p className="text-sm text-gray-600">{rule.chineseDescription}</p>
-                    {/* Clickable sound row */}
-                    <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
-                      <button
-                        onClick={() => speak(rule.pattern, 0.7)}
-                        className="rounded-lg bg-primary-100 px-3 py-1.5 text-lg font-bold text-primary-700 hover:bg-primary-200 transition"
-                      >
-                        {rule.pattern} 🔊
-                      </button>
-                      <span className="text-gray-400">→</span>
-                      <button
-                        onClick={() => speak(rule.examples[0]?.word || rule.pattern, 0.7)}
-                        className="rounded-lg bg-green-100 px-3 py-1.5 text-lg font-mono font-bold text-green-700 hover:bg-green-200 transition"
-                      >
-                        {rule.soundIPA} 🔊
-                      </button>
-                      <span className="text-sm text-gray-500">{rule.chineseHint}</span>
+
+                    {/* Sound isolation row */}
+                    <div className="rounded-lg bg-gray-50 p-3 space-y-2">
+                      <div className="text-xs font-medium text-gray-500 mb-1">🔊 发音示范</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={() => speak(rule.pattern, 0.5)}
+                          className="rounded-lg bg-primary-100 px-3 py-1.5 text-sm font-bold text-primary-700 hover:bg-primary-200 transition"
+                        >
+                          模式: {rule.pattern} 🔊
+                        </button>
+                        <span className="text-gray-300">→</span>
+                        <button
+                          onClick={() => speak(rule.examples[0]?.word || "", 0.7)}
+                          className="rounded-lg bg-green-100 px-3 py-1.5 text-sm font-mono font-bold text-green-700 hover:bg-green-200 transition"
+                        >
+                          {rule.soundIPA} 🔊
+                        </button>
+                        <span className="text-sm text-gray-500">{rule.chineseHint}</span>
+                      </div>
                     </div>
+
+                    {/* Example words grid */}
                     <div className="grid grid-cols-2 gap-2">
                       {rule.examples.map((ex) => (
                         <button
@@ -415,8 +512,12 @@ export default function PhonicsPage() {
                         </button>
                       ))}
                     </div>
+
+                    {/* Play all button */}
                     <button
-                      onClick={() => speak(rule.examples.map((e) => e.word).join(", "), 0.7)}
+                      onClick={() =>
+                        speak(rule.examples.map((e) => e.word).join(", "), 0.7)
+                      }
                       className="w-full rounded-lg bg-primary-500 py-2 text-sm font-medium text-white"
                     >
                       🔊 连续播放所有例词
@@ -425,6 +526,81 @@ export default function PhonicsPage() {
                 )}
               </div>
             ))}
+          </div>
+        );
+
+      // ---- Blending Practice ----
+      case "blending":
+        return (
+          <div className="space-y-4">
+            <div className="card bg-indigo-50">
+              <h2 className="text-lg font-bold text-indigo-800 mb-2">
+                🧩 拼读练习 Blending
+              </h2>
+              <p className="text-sm text-indigo-600">
+                把分开的音拼在一起读出来。先慢速逐个音，再快速连读整个单词。
+              </p>
+            </div>
+
+            {/* Interactive blending */}
+            <div className="card">
+              <h3 className="font-bold mb-3">🎯 互动拼读</h3>
+              <p className="text-xs text-gray-500 mb-3">点击下方按钮，听系统逐音拼读然后连读整个单词：</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { word: "cat", parts: "c-a-t", meaning: "猫" },
+                  { word: "dog", parts: "d-o-g", meaning: "狗" },
+                  { word: "fish", parts: "f-i-sh", meaning: "鱼" },
+                  { word: "ship", parts: "sh-i-p", meaning: "船" },
+                  { word: "cake", parts: "c-a_ke", meaning: "蛋糕" },
+                  { word: "tree", parts: "tr-ee", meaning: "树" },
+                  { word: "book", parts: "b-oo-k", meaning: "书" },
+                  { word: "think", parts: "th-i-nk", meaning: "想" },
+                  { word: "chair", parts: "ch-air", meaning: "椅子" },
+                  { word: "sun", parts: "s-u-n", meaning: "太阳" },
+                  { word: "home", parts: "h-o_me", meaning: "家" },
+                  { word: "milk", parts: "m-i-lk", meaning: "牛奶" },
+                ].map((item) => (
+                  <button
+                    key={item.word}
+                    onClick={() => handleBlend(item.word)}
+                    className="rounded-xl border-2 border-indigo-200 bg-white p-3 text-left hover:border-indigo-400 hover:bg-indigo-50 transition active:scale-95"
+                  >
+                    <div className="font-bold text-indigo-700">{item.word}</div>
+                    <div className="text-xs text-gray-500">{item.parts}</div>
+                    <div className="text-xs text-gray-400">{item.meaning}</div>
+                  </button>
+                ))}
+              </div>
+              {blendResult && (
+                <div className="mt-3 rounded-lg bg-green-50 p-2 text-center text-sm text-green-700">
+                  {blendResult}
+                </div>
+              )}
+            </div>
+
+            {/* Blending rules */}
+            <div className="card">
+              <h3 className="font-bold mb-3">📐 拼读技巧</h3>
+              <div className="space-y-3 text-sm text-gray-600">
+                <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="font-medium text-gray-800">1. 逐音慢读</div>
+                  <p>先把每个音素单独发出来：/k/ - /æ/ - /t/</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="font-medium text-gray-800">2. 加速连读</div>
+                  <p>逐渐加快速度，把音连在一起：k-æ-t → cat</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="font-medium text-gray-800">3. 重音标记</div>
+                  <p>多音节词要注意重音位置，如 TEA-cher（重音在前）</p>
+                </div>
+                <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="font-medium text-gray-800">4. 魔法 e 规则</div>
+                  <p>词尾加 e，前面元音变长音：cap → cape, kit → kite</p>
+                </div>
+              </div>
+            </div>
           </div>
         );
 
@@ -531,22 +707,22 @@ export default function PhonicsPage() {
                 🎯 自然拼读测验
               </h2>
               <p className="text-sm text-purple-600">
-                共 {QUIZ_QUESTIONS.length} 题，测试你的拼读知识掌握程度。
+                共 {quizQuestions.length} 题，涵盖字母发音、拼读规则、发音难点和拼读练习。
               </p>
               {quizSubmitted && (
                 <div className="mt-3 rounded-lg bg-white p-3 text-center">
                   <div className="text-3xl font-bold text-purple-700">
-                    {quizScore}/{QUIZ_QUESTIONS.length}
+                    {quizScore}/{quizQuestions.length}
                   </div>
                   <div className="text-sm text-gray-500">
-                    正确率 {Math.round((quizScore / QUIZ_QUESTIONS.length) * 100)}%
+                    正确率 {Math.round((quizScore / quizQuestions.length) * 100)}%
                   </div>
                   <div className="mt-2 text-sm">
-                    {quizScore === QUIZ_QUESTIONS.length
+                    {quizScore === quizQuestions.length
                       ? "🎉 满分！太厉害了！"
-                      : quizScore >= QUIZ_QUESTIONS.length * 0.8
+                      : quizScore >= quizQuestions.length * 0.8
                       ? "👍 很棒！掌握得不错！"
-                      : quizScore >= QUIZ_QUESTIONS.length * 0.6
+                      : quizScore >= quizQuestions.length * 0.6
                       ? "📚 还不错，继续加油！"
                       : "💪 需要再复习一下哦！"}
                   </div>
@@ -554,7 +730,7 @@ export default function PhonicsPage() {
               )}
             </div>
 
-            {QUIZ_QUESTIONS.map((q, qIdx) => (
+            {quizQuestions.map((q, qIdx) => (
               <div key={qIdx} className="card">
                 <div className="flex items-start gap-2 mb-3">
                   <span className="flex-shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-xs font-bold text-primary-700">
@@ -563,6 +739,27 @@ export default function PhonicsPage() {
                   <div>
                     <div className="font-medium text-sm">{q.question}</div>
                     <div className="text-xs text-gray-500">{q.questionZh}</div>
+                    <div className="mt-1">
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          q.type === "letter"
+                            ? "bg-blue-100 text-blue-700"
+                            : q.type === "rule"
+                            ? "bg-green-100 text-green-700"
+                            : q.type === "challenge"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-indigo-100 text-indigo-700"
+                        }`}
+                      >
+                        {q.type === "letter"
+                          ? "🔤 字母"
+                          : q.type === "rule"
+                          ? "📐 规则"
+                          : q.type === "challenge"
+                          ? "🇨🇳 发音"
+                          : "🧩 拼读"}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -609,17 +806,17 @@ export default function PhonicsPage() {
               {!quizSubmitted ? (
                 <button
                   onClick={handleQuizSubmit}
-                  disabled={quizAnswers.filter((a) => a !== undefined).length < QUIZ_QUESTIONS.length}
+                  disabled={quizAnswers.filter((a) => a !== undefined).length < quizQuestions.length}
                   className="flex-1 rounded-xl bg-primary-500 py-3 font-bold text-white disabled:opacity-50"
                 >
-                  提交答案
+                  提交答案 ({quizAnswers.filter((a) => a !== undefined).length}/{quizQuestions.length})
                 </button>
               ) : (
                 <button
                   onClick={handleQuizReset}
                   className="flex-1 rounded-xl bg-primary-500 py-3 font-bold text-white"
                 >
-                  🔄 重新测试
+                  🔄 重新测试（题目会随机更新）
                 </button>
               )}
             </div>
@@ -793,6 +990,7 @@ export default function PhonicsPage() {
     { key: "overview", label: "总览", icon: "📖" },
     { key: "alphabet", label: "字母", icon: "🔤" },
     { key: "rules", label: "规则", icon: "📐" },
+    { key: "blending", label: "拼读", icon: "🧩" },
     { key: "chinese", label: "发音难点", icon: "🇨🇳" },
     { key: "quiz", label: "测验", icon: "🎯" },
     { key: "resources", label: "资源", icon: "📺" },

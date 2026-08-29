@@ -224,9 +224,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "Hello! My name is Li Ming. I am from China. I have a family of four. My father is a teacher. My mother is a nurse. I have a sister. Her name is Li Hua. She is 10 years old. We live in Beijing. I love my family.",
     textZh: "你好！我叫李明。我来自中国。我家有四口人。我爸爸是老师。我妈妈是护士。我有一个妹妹。她叫李华。她10岁了。我们住在北京。我爱我的家人。",
     questions: [
-      { q: "Li Ming is from ___", options: ["China", "Japan"], answer: 0 },
-      { q: "His father is a ___", options: ["teacher", "doctor"], answer: 0 },
-      { q: "How old is Li Hua? ___", options: ["10", "12"], answer: 0 },
+      { q: "Li Ming is from ___", options: ["China", "Japan", "America", "England"], answer: 0 },
+      { q: "His father is a ___", options: ["doctor", "teacher", "driver", "cook"], answer: 1 },
+      { q: "How old is Li Hua?", options: ["8", "12", "10", "15"], answer: 2 },
     ],
   },
   2: {
@@ -235,9 +235,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "I wake up at 7 o'clock every morning. First, I brush my teeth and wash my face. Then I eat breakfast. I usually have bread and milk. I go to school at 8 o'clock. My school is big and beautiful. I have many friends at school. After school, I do my homework. In the evening, I watch TV with my family. I go to bed at 10 o'clock.",
     textZh: "我每天早上7点起床。首先，我刷牙洗脸。然后我吃早餐。我通常吃面包和牛奶。我8点去学校。我的学校又大又漂亮。我在学校有很多朋友。放学后，我做作业。晚上，我和家人一起看电视。我10点上床睡觉。",
     questions: [
-      { q: "What time does he wake up?", options: ["7 o'clock", "8 o'clock"], answer: 0 },
-      { q: "What does he eat for breakfast?", options: ["bread and milk", "rice and eggs"], answer: 0 },
-      { q: "When does he go to bed?", options: ["10 o'clock", "11 o'clock"], answer: 0 },
+      { q: "What time does he wake up?", options: ["6 o'clock", "7 o'clock", "8 o'clock", "9 o'clock"], answer: 1 },
+      { q: "What does he eat for breakfast?", options: ["rice and eggs", "noodles", "bread and milk", "fruit"], answer: 2 },
+      { q: "When does he go to bed?", options: ["9 o'clock", "10 o'clock", "11 o'clock", "8 o'clock"], answer: 1 },
     ],
   },
   3: {
@@ -246,9 +246,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "I love food! My favorite food is rice and chicken. I eat rice every day because I am Chinese. I also like bread and eggs. For breakfast, I usually have milk and an apple. For lunch, I have rice with vegetables. For dinner, my mother cooks fish. She makes the best fish in the world! I don't like vegetables, but I try to eat them. Fruit is good for health. I eat an orange every day.",
     textZh: "我爱美食！我最喜欢的食物是米饭和鸡肉。我每天吃米饭因为我是中国人。我也喜欢面包和鸡蛋。早餐我通常喝牛奶吃一个苹果。午餐我吃米饭配蔬菜。晚餐我妈妈做鱼。她做的鱼是世界上最好的！我不喜欢蔬菜，但我尽量吃。水果对健康有益。我每天吃一个橙子。",
     questions: [
-      { q: "What is his favorite food?", options: ["rice and chicken", "bread and milk"], answer: 0 },
-      { q: "What does he have for lunch?", options: ["rice with vegetables", "fish"], answer: 0 },
-      { q: "Does he like vegetables?", options: ["No, but he tries", "Yes, he loves them"], answer: 0 },
+      { q: "What is his favorite food?", options: ["bread and milk", "rice and chicken", "noodles", "pizza"], answer: 1 },
+      { q: "What does he have for lunch?", options: ["fish", "bread", "rice with vegetables", "chicken"], answer: 2 },
+      { q: "Does he like vegetables?", options: ["Yes, he loves them", "No, but he tries", "He never eats them", "He likes them a lot"], answer: 1 },
     ],
   },
   4: {
@@ -257,9 +257,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "I live in a small apartment in Beijing. My home has three rooms. My bedroom is small but clean. I have a big desk and a comfortable bed. The living room is where we watch TV and talk. My mother cooks in the kitchen. The kitchen is always warm. We have a small balcony with flowers. I love sitting on the balcony and reading books. My home is not big, but it is very cozy. I love my home.",
     textZh: "我住在北京的一个小公寓里。我的家有三个房间。我的卧室很小但很干净。我有一张大书桌和一张舒适的床。客厅是我们看电视和聊天的地方。我妈妈在厨房做饭。厨房总是暖暖的。我们有一个小阳台，上面有花。我喜欢坐在阳台上看书。我的家不大，但非常温馨。我爱我的家。",
     questions: [
-      { q: "How many rooms does his home have?", options: ["3", "4"], answer: 0 },
-      { q: "Where does his mother cook?", options: ["kitchen", "living room"], answer: 0 },
-      { q: "What does he do on the balcony?", options: ["reads books", "watches TV"], answer: 0 },
+      { q: "How many rooms does his home have?", options: ["2", "3", "4", "5"], answer: 1 },
+      { q: "Where does his mother cook?", options: ["bedroom", "living room", "kitchen", "balcony"], answer: 2 },
+      { q: "What does he do on the balcony?", options: ["watches TV", "reads books", "sleeps", "cooks"], answer: 1 },
     ],
   },
   5: {
@@ -268,9 +268,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "I have many friends. My best friend is Wang Wei. He is 12 years old. He is tall and thin. He likes basketball and football. We play together after school every day. He is very funny and always makes me laugh. His favorite food is chicken. He wants to be a basketball player when he grows up. I also have a friend named Li Na. She is very quiet but very smart. She likes reading and painting. We are all good friends.",
     textZh: "我有很多朋友。我最好的朋友是王伟。他12岁了。他又高又瘦。他喜欢篮球和足球。我们每天放学后一起玩。他很有趣，总是让我笑。他最喜欢的食物是鸡肉。他长大后想当篮球运动员。我还有一个朋友叫李娜。她很安静但很聪明。她喜欢读书和画画。我们都是好朋友。",
     questions: [
-      { q: "How old is Wang Wei?", options: ["12", "10"], answer: 0 },
-      { q: "What does Wang Wei want to be?", options: ["basketball player", "teacher"], answer: 0 },
-      { q: "What does Li Na like?", options: ["reading and painting", "basketball"], answer: 0 },
+      { q: "How old is Wang Wei?", options: ["10", "11", "12", "13"], answer: 2 },
+      { q: "What does Wang Wei want to be?", options: ["teacher", "doctor", "basketball player", "driver"], answer: 2 },
+      { q: "What does Li Na like?", options: ["basketball and football", "running", "reading and painting", "cooking"], answer: 2 },
     ],
   },
   6: {
@@ -279,9 +279,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "Today is Saturday. My mother and I go to the store. We buy many things. We buy rice, bread, milk, and eggs. We also buy some fruit: apples, bananas, and oranges. I want to buy candy, but my mother says no. She says candy is bad for my teeth. Then we go to the clothes store. My mother buys me a new shirt. It is blue. I like it very much. We spend two hours shopping. After shopping, we eat lunch at a restaurant. I have chicken and rice. It is a good day!",
     textZh: "今天是星期六。我和妈妈去商店。我们买了很多东西。我们买了米饭、面包、牛奶和鸡蛋。我们也买了一些水果：苹果、香蕉和橙子。我想买糖果，但妈妈说不行。她说糖果对牙齿不好。然后我们去了服装店。妈妈给我买了一件新衬衫。是蓝色的。我非常喜欢。我们花了两个小时购物。购物后，我们在餐厅吃午饭。我吃了鸡肉和米饭。今天过得很好！",
     questions: [
-      { q: "What day is it?", options: ["Saturday", "Sunday"], answer: 0 },
-      { q: "Why can't he buy candy?", options: ["bad for teeth", "too expensive"], answer: 0 },
-      { q: "What color is the new shirt?", options: ["blue", "red"], answer: 0 },
+      { q: "What day is it?", options: ["Friday", "Saturday", "Sunday", "Monday"], answer: 1 },
+      { q: "Why can't he buy candy?", options: ["It is too expensive", "It is bad for teeth", "The store is closed", "His mother doesn't like it"], answer: 1 },
+      { q: "What color is the new shirt?", options: ["red", "white", "blue", "green"], answer: 2 },
     ],
   },
   7: {
@@ -290,9 +290,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "The weather changes every day. In spring, it is warm. I can see flowers and green trees. In summer, it is very hot. I like to eat ice cream and drink cold water. In autumn, the leaves turn red and yellow. It is cool and nice. In winter, it is very cold. Sometimes it snows! I can play with snow and make a snowman. My favorite season is summer because I can swim and eat ice cream. What is your favorite season?",
     textZh: "天气每天都在变。春天很温暖。我能看到花和绿树。夏天非常热。我喜欢吃冰淇淋和喝冷水。秋天树叶变红变黄。天气凉爽宜人。冬天非常冷。有时会下雪！我可以玩雪和堆雪人。我最喜欢的季节是夏天，因为我可以游泳和吃冰淇淋。你最喜欢的季节是什么？",
     questions: [
-      { q: "What is his favorite season?", options: ["summer", "winter"], answer: 0 },
-      { q: "What happens in autumn?", options: ["leaves turn red and yellow", "it snows"], answer: 0 },
-      { q: "What does he do in summer?", options: ["swim and eat ice cream", "make snowman"], answer: 0 },
+      { q: "What is his favorite season?", options: ["spring", "autumn", "winter", "summer"], answer: 3 },
+      { q: "What happens in autumn?", options: ["it snows", "it is very hot", "leaves turn red and yellow", "flowers bloom"], answer: 2 },
+      { q: "What does he do in summer?", options: ["make a snowman", "swim and eat ice cream", "pick flowers", "wear a coat"], answer: 1 },
     ],
   },
   8: {
@@ -301,9 +301,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "I go to school from Monday to Friday. School starts at 8 o'clock. I have four classes in the morning: Chinese, Math, English, and Science. I like English class the most. My English teacher is very nice. She speaks English slowly so we can understand. After morning classes, I eat lunch at school. The food is OK. In the afternoon, I have two more classes: Art and PE. I love PE because I can run and play sports. School ends at 3 o'clock. After school, I go home and do my homework. I finish homework by 6 o'clock. Then I have dinner with my family.",
     textZh: "我周一到周五去上学。学校8点开始上课。我上午有四节课：语文、数学、英语和科学。我最喜欢英语课。我的英语老师很好。她说英语很慢，这样我们能听懂。上午课后，我在学校吃午饭。食物还可以。下午我还有两节课：美术和体育。我喜欢体育课，因为可以跑步和做运动。学校3点放学。放学后，我回家做作业。我6点前做完作业。然后和家人一起吃晚饭。",
     questions: [
-      { q: "What class does he like most?", options: ["English", "Math"], answer: 0 },
-      { q: "What time does school end?", options: ["3 o'clock", "4 o'clock"], answer: 0 },
-      { q: "Why does he like PE?", options: ["can run and play sports", "it is easy"], answer: 0 },
+      { q: "What class does he like most?", options: ["Chinese", "Math", "English", "Science"], answer: 2 },
+      { q: "What time does school end?", options: ["2 o'clock", "3 o'clock", "4 o'clock", "5 o'clock"], answer: 1 },
+      { q: "Why does he like PE?", options: ["it is easy", "the teacher is nice", "he can run and play sports", "it is the last class"], answer: 2 },
     ],
   },
   9: {
@@ -312,9 +312,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "I live in a nice neighborhood. There is a small park near my home. I go there every evening to walk and exercise. There is also a big supermarket where my mother buys food. Next to the supermarket, there is a bakery. They sell delicious bread and cakes. I sometimes buy bread there with my pocket money. There is a library two blocks away from my home. I go there every weekend to read books. The librarian is very kind. My neighborhood is quiet and clean. I like living here.",
     textZh: "我住在一个很好的社区。我家附近有一个小公园。我每天晚上去那里散步和锻炼。还有一个大超市，我妈妈在那里买食物。超市旁边有一家面包店。他们卖好吃的面包和蛋糕。我有时用零花钱在那里买面包。我家两个街区外有一个图书馆。我每个周末都去那里看书。图书管理员人很好。我的社区安静又干净。我喜欢住在这里。",
     questions: [
-      { q: "What is near his home?", options: ["a small park", "a big school"], answer: 0 },
-      { q: "Where does he go on weekends?", options: ["library", "supermarket"], answer: 0 },
-      { q: "What does the bakery sell?", options: ["bread and cakes", "rice"], answer: 0 },
+      { q: "What is near his home?", options: ["a big school", "a hospital", "a small park", "a zoo"], answer: 2 },
+      { q: "Where does he go on weekends?", options: ["supermarket", "park", "bakery", "library"], answer: 3 },
+      { q: "What does the bakery sell?", options: ["rice and noodles", "bread and cakes", "clothes", "books"], answer: 1 },
     ],
   },
   10: {
@@ -323,9 +323,9 @@ const DAY_READING: Record<number, { title: string; titleZh: string; text: string
     text: "Last Sunday, I went to the zoo with my family. We saw many animals. The lions were big and strong. They slept all day! The monkeys were very funny. They jumped from tree to tree. The elephants were huge. They used their long noses to drink water. My favorite animals were the pandas. They were so cute! They ate bamboo and rolled around. I took many pictures. After visiting the animals, we ate lunch at the zoo restaurant. I had a hamburger. Then we went to the gift shop. I bought a small teddy bear. It was the best day ever!",
     textZh: "上个星期天，我和家人去了动物园。我们看到了很多动物。狮子很大很强壮。它们整天都在睡觉！猴子们很有趣。它们从一棵树跳到另一棵树。大象非常大。它们用长鼻子喝水。我最喜欢的动物是熊猫。它们太可爱了！它们吃竹子还滚来滚去。我拍了很多照片。看完动物后，我们在动物园餐厅吃了午饭。我吃了汉堡。然后我们去了礼品店。我买了一个小泰迪熊。这是最棒的一天！",
     questions: [
-      { q: "What did they see at the zoo?", options: ["many animals", "many fish"], answer: 0 },
-      { q: "What were his favorite animals?", options: ["pandas", "lions"], answer: 0 },
-      { q: "What did he buy at the gift shop?", options: ["teddy bear", "book"], answer: 0 },
+      { q: "What did they see at the zoo?", options: ["many fish", "many birds", "many animals", "many insects"], answer: 2 },
+      { q: "What were his favorite animals?", options: ["monkeys", "elephants", "lions", "pandas"], answer: 3 },
+      { q: "What did he buy at the gift shop?", options: ["a book", "a teddy bear", "a picture", "a toy car"], answer: 1 },
     ],
   },
 };
