@@ -466,7 +466,7 @@ export default function PhonicsPage() {
           <div className="space-y-4">
             <div className="card bg-blue-50">
               <p className="text-sm text-blue-700">
-                👆 <strong>点击大写字母</strong>听字母名称读音，点击 <strong>🔊</strong> 听字母在单词中的发音，点击 <strong>例词</strong> 听完整单词
+                👆 <strong>点击大写字母</strong>听发音+例词，点击 <strong>🔊</strong> 单独听发音，点击 <strong>例词</strong> 听单词
               </p>
             </div>
             {/* Vowels */}
@@ -481,24 +481,19 @@ export default function PhonicsPage() {
                       key={letter.uppercase}
                       className="flex flex-col items-center rounded-xl border-2 border-red-200 bg-red-50 p-3"
                     >
-                      {/* Clickable big letter — reads letter name */}
+                      {/* Clickable big letter — plays phoneme then example word */}
                       <button
-                        onClick={() => speak(letter.uppercase, 0.6)}
+                        onClick={() => {
+                          speakLetterPhoneme(letter.uppercase);
+                          setTimeout(() => speak(letter.example, 0.7), 800);
+                        }}
                         className="text-4xl font-bold text-red-600 hover:text-red-800 active:scale-90 transition-all cursor-pointer mb-1"
-                        title={`点击听字母名称: ${letter.name} (${letter.nameIPA})`}
+                        title={`点击听发音: ${letter.chineseHint}，然后听例词: ${letter.example}`}
                       >
                         {letter.uppercase}
                         <span className="text-2xl text-red-400">{letter.lowercase}</span>
                       </button>
-                      <div className="text-[10px] text-gray-500 mb-1">{letter.nameIPA}</div>
-                      {/* Phoneme sound button */}
-                      <button
-                        onClick={() => speakLetterPhoneme(letter.uppercase)}
-                        className="w-full rounded-lg bg-white border border-red-200 px-1 py-1 text-[10px] font-medium text-red-600 hover:bg-red-100 active:scale-95 transition-all mb-1"
-                        title="听字母在单词中的发音"
-                      >
-                        🔊 {letter.soundIPA}
-                      </button>
+                      <div className="text-[10px] text-gray-500 mb-1">{letter.soundIPA} · {letter.example}</div>
                       {/* Example word button */}
                       <button
                         onClick={() => speak(letter.example, 0.7)}
@@ -523,22 +518,17 @@ export default function PhonicsPage() {
                       key={letter.uppercase}
                       className="flex flex-col items-center rounded-xl border-2 border-blue-200 bg-blue-50 p-2"
                     >
-                      {/* Clickable big letter — reads letter name */}
+                      {/* Clickable big letter — plays phoneme then example word */}
                       <button
-                        onClick={() => speak(letter.uppercase, 0.6)}
+                        onClick={() => {
+                          speakLetterPhoneme(letter.uppercase);
+                          setTimeout(() => speak(letter.example, 0.7), 800);
+                        }}
                         className="text-2xl font-bold text-blue-600 hover:text-blue-800 active:scale-90 transition-all cursor-pointer"
-                        title={`点击听字母名称: ${letter.name} (${letter.nameIPA})`}
+                        title={`点击听发音: ${letter.chineseHint}，然后听例词: ${letter.example}`}
                       >
                         {letter.uppercase}
                         <span className="text-lg text-blue-400">{letter.lowercase}</span>
-                      </button>
-                      {/* Phoneme sound button */}
-                      <button
-                        onClick={() => speakLetterPhoneme(letter.uppercase)}
-                        className="w-full rounded bg-white border border-blue-200 px-1 py-0.5 text-[9px] text-blue-600 hover:bg-blue-100 active:scale-95 transition-all mt-1"
-                        title="听字母在单词中的发音"
-                      >
-                        🔊 {letter.soundIPA}
                       </button>
                       {/* Example word button */}
                       <button
