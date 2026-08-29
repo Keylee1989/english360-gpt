@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/english360-gpt/sw.js', { scope: '/english360-gpt/' })})}
