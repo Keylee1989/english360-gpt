@@ -317,13 +317,11 @@ export default function PhonicsPage() {
     ? quizQuestions.filter((q, i) => quizAnswers[i] === q.answer).length
     : 0;
 
-  // Play challenge sound
-  const playChallenge = useCallback((sound: string, words: string[]) => {
-    setChallengePlaying(sound);
-    words.forEach((w, i) => {
-      setTimeout(() => speak(w, 0.7), i * 800);
-    });
-    setTimeout(() => setChallengePlaying(null), words.length * 800 + 500);
+  // Play challenge phoneme sound only (not the practice words)
+  const playChallenge = useCallback((ipa: string) => {
+    setChallengePlaying(ipa);
+    speakIPASound(ipa);
+    setTimeout(() => setChallengePlaying(null), 1200);
   }, []);
 
   // Blending practice handler
@@ -737,7 +735,7 @@ export default function PhonicsPage() {
                 🇨🇳 中文母语者发音难点
               </h2>
               <p className="text-sm text-red-600">
-                以下是中文母语者最容易出错的发音。点击播放听示范，然后跟读练习。
+                以下是中文母语者最容易出错的发音。点击「听发音」听这个音本身，下方单词可以逐个点击听。
               </p>
             </div>
             {challenges.challenges.map((ch) => (
@@ -750,15 +748,15 @@ export default function PhonicsPage() {
                     <span className="ml-2 text-sm text-gray-600">{ch.chineseHint}</span>
                   </div>
                   <button
-                    onClick={() => playChallenge(ch.sound, ch.practice)}
-                    disabled={challengePlaying === ch.sound}
+                    onClick={() => playChallenge(ch.ipa)}
+                    disabled={challengePlaying === ch.ipa}
                     className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                      challengePlaying === ch.sound
+                      challengePlaying === ch.ipa
                         ? "bg-green-500 text-white"
                         : "bg-primary-100 text-primary-700 hover:bg-primary-200"
                     }`}
                   >
-                    {challengePlaying === ch.sound ? "▶ 播放中..." : "🔊 听示范"}
+                    {challengePlaying === ch.ipa ? "▶ 播放中..." : "🔊 听发音"}
                   </button>
                 </div>
                 <div className="space-y-1 mb-3">
